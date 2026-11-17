@@ -1,7 +1,7 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
-import { badgeClass } from '../../shared/utils';
+import { badgeClass, initials } from '../../shared/utils';
 import { ReportesService } from './reportes.service';
 
 const ANIO = 2026;
@@ -12,158 +12,208 @@ const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', '
   standalone: true,
   imports: [CurrencyPipe, DatePipe],
   template: `
-    <div class="container-fluid py-4">
-      <h3 class="mb-3">Dashboard de reportes</h3>
-      @if (error()) { <div class="alert alert-danger">{{ error() }}</div> }
+    <div class="ev-page">
+      <header class="ev-page-header">
+        <div>
+          <div class="ev-eyebrow"><i class="bi bi-grid-1x2"></i> Administración</div>
+          <h1 class="ev-page-title">Dashboard de reportes</h1>
+          <p class="ev-page-sub">Resumen de la operación de Eventra durante {{ anio }}.</p>
+        </div>
+      </header>
+
+      @if (error()) { <div class="ev-alert danger"><i class="bi bi-exclamation-octagon-fill"></i><span>{{ error() }}</span></div> }
 
       @if (d(); as d) {
         <!-- Reporte general -->
         <div class="row g-3 mb-4">
           @for (c of tarjetas(d.general); track c.label) {
-            <div class="col-6 col-md">
-              <div class="card text-center shadow-sm"><div class="card-body">
-                <div class="fs-2 fw-bold">{{ c.valor }}</div>
-                <div class="text-muted">{{ c.label }}</div>
-              </div></div>
+            <div class="col-6 col-md-4 col-xl">
+              <div class="card ev-kpi">
+                <span [class]="'ev-kpi-icon ' + c.tone"><i [class]="'bi ' + c.icon"></i></span>
+                <div><div class="ev-kpi-value">{{ c.valor }}</div><div class="ev-kpi-label">{{ c.label }}</div></div>
+              </div>
             </div>
           }
         </div>
 
         <div class="row g-4">
-          <div class="col-lg-6">
-            <h5>Ingresos totales por mes ({{ anio }})</h5>
-            <table class="table table-sm bg-white">
-              <thead class="table-dark"><tr><th>Mes</th><th>Ingresos</th><th style="width:45%"></th></tr></thead>
-              <tbody>
-                @for (m of d.ingresosMensuales; track m.mes) {
-                  <tr>
-                    <td>{{ meses[m.mes - 1] }}</td>
-                    <td>{{ m.ingresos | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
-                    <td>
-                      <div class="progress" style="height: 14px">
-                        <div class="progress-bar" [style.width.%]="porcentaje(m.ingresos, d.ingresosMensuales)"></div>
-                      </div>
-                    </td>
-                  </tr>
+          <div class="col-12">
+            <div class="card">
+              <div class="ev-card-header">
+                <h2 class="ev-card-title"><i class="bi bi-graph-up-arrow"></i> Ingresos totales por mes ({{ anio }})</h2>
+                <div class="text-end">
+                  <div class="ev-kpi-label m-0">Total del año</div>
+                  <div class="fw-bold ev-num">{{ totalAnual(d.ingresosMensuales) | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</div>
+                </div>
+              </div>
+              <div class="ev-bars">
+                @for (m of serieMensual(d.ingresosMensuales); track m.mes) {
+                  <div class="ev-bar">
+                    <div class="ev-bar-fill" [class.zero]="!m.ingresos" [style.height.%]="m.pct || 2"
+                         [attr.data-v]="m.ingresos | currency: 'COP' : 'symbol-narrow' : '1.0-0'"></div>
+                    <span class="ev-bar-label">{{ meses[m.mes - 1].slice(0, 3) }}</span>
+                  </div>
                 }
-              </tbody>
-            </table>
+              </div>
+            </div>
           </div>
 
-          <div class="col-lg-6">
-            <h5>Reservas por evento y por mes ({{ anio }})</h5>
-            <table class="table table-sm bg-white">
-              <thead class="table-dark"><tr><th>Evento</th><th>Mes</th><th>Reservas</th></tr></thead>
-              <tbody>
-                @for (r of d.reservasEventoMes; track $index) {
-                  <tr><td>{{ r.evento }}</td><td>{{ meses[r.mes - 1] }}</td><td>{{ r.reservas }}</td></tr>
-                } @empty { <tr><td colspan="3" class="text-muted">Sin datos</td></tr> }
-              </tbody>
-            </table>
+          <div class="col-xl-6">
+            <div class="card h-100">
+              <div class="ev-card-header"><h2 class="ev-card-title"><i class="bi bi-person-badge"></i> Promedio de ingresos por agente</h2></div>
+              <div class="table-responsive" style="max-height: 380px">
+                <table class="table ev-table table-hover">
+                  <thead class="sticky-top"><tr><th>Agente</th><th class="text-end">Confirmadas</th><th class="text-end">Ingresos</th><th class="text-end">Promedio</th></tr></thead>
+                  <tbody>
+                    @for (a of d.promedioAgente; track a.id_agente) {
+                      <tr>
+                        <td><div class="d-flex align-items-center gap-2"><span class="ev-avatar sm soft">{{ initials(a.agente) }}</span><span class="fw-semibold">{{ a.agente }}</span></div></td>
+                        <td class="text-end ev-num">{{ a.reservas_confirmadas }}</td>
+                        <td class="text-end ev-num">{{ a.ingresos_totales | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
+                        <td class="text-end ev-num fw-semibold">{{ a.promedio_ingresos | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
+                      </tr>
+                    } @empty { <tr><td colspan="4"><div class="ev-empty py-4"><i class="bi bi-inbox"></i>Sin datos</div></td></tr> }
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
-          <div class="col-lg-6">
-            <h5>Promedio de ingresos por agente</h5>
-            <table class="table table-sm bg-white">
-              <thead class="table-dark"><tr><th>Agente</th><th>Reservas confirmadas</th><th>Ingresos totales</th><th>Promedio</th></tr></thead>
-              <tbody>
-                @for (a of d.promedioAgente; track a.id_agente) {
-                  <tr>
-                    <td>{{ a.agente }}</td><td>{{ a.reservas_confirmadas }}</td>
-                    <td>{{ a.ingresos_totales | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
-                    <td>{{ a.promedio_ingresos | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+          <div class="col-xl-6">
+            <div class="card h-100">
+              <div class="ev-card-header"><h2 class="ev-card-title"><i class="bi bi-people"></i> Promedio de ingresos por cliente</h2></div>
+              <div class="table-responsive" style="max-height: 380px">
+                <table class="table ev-table table-hover">
+                  <thead class="sticky-top"><tr><th>Cliente</th><th class="text-end">Confirmadas</th><th class="text-end">Ingresos</th><th class="text-end">Promedio</th></tr></thead>
+                  <tbody>
+                    @for (c of d.promedioCliente; track c.id_cliente) {
+                      <tr>
+                        <td><div class="d-flex align-items-center gap-2"><span class="ev-avatar sm">{{ initials(c.cliente) }}</span><span class="fw-semibold">{{ c.cliente }}</span></div></td>
+                        <td class="text-end ev-num">{{ c.reservas_confirmadas }}</td>
+                        <td class="text-end ev-num">{{ c.ingresos_totales | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
+                        <td class="text-end ev-num fw-semibold">{{ c.promedio_ingresos | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
+                      </tr>
+                    } @empty { <tr><td colspan="4"><div class="ev-empty py-4"><i class="bi bi-inbox"></i>Sin datos</div></td></tr> }
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
-          <div class="col-lg-6">
-            <h5>Promedio de ingresos por cliente</h5>
-            <table class="table table-sm bg-white">
-              <thead class="table-dark"><tr><th>Cliente</th><th>Reservas confirmadas</th><th>Ingresos totales</th><th>Promedio</th></tr></thead>
-              <tbody>
-                @for (c of d.promedioCliente; track c.id_cliente) {
-                  <tr>
-                    <td>{{ c.cliente }}</td><td>{{ c.reservas_confirmadas }}</td>
-                    <td>{{ c.ingresos_totales | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
-                    <td>{{ c.promedio_ingresos | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+          <div class="col-xl-6">
+            <div class="card h-100">
+              <div class="ev-card-header"><h2 class="ev-card-title"><i class="bi bi-calendar-week"></i> Reservas por evento y por mes</h2></div>
+              <div class="table-responsive" style="max-height: 380px">
+                <table class="table ev-table table-hover">
+                  <thead class="sticky-top"><tr><th>Evento</th><th>Mes</th><th class="text-end">Reservas</th></tr></thead>
+                  <tbody>
+                    @for (r of d.reservasEventoMes; track $index) {
+                      <tr><td class="fw-semibold">{{ r.evento }}</td><td>{{ meses[r.mes - 1] }}</td><td class="text-end ev-num">{{ r.reservas }}</td></tr>
+                    } @empty { <tr><td colspan="3"><div class="ev-empty py-4"><i class="bi bi-inbox"></i>Sin datos</div></td></tr> }
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
-          <div class="col-lg-6">
-            <h5>Eventos creados por agente y por ciudad</h5>
-            <table class="table table-sm bg-white">
-              <thead class="table-dark"><tr><th>Agente</th><th>Ciudad</th><th>Eventos</th></tr></thead>
-              <tbody>
-                @for (e of d.eventosAgenteCiudad; track $index) {
-                  <tr><td>{{ e.agente }}</td><td>{{ e.ciudad }}</td><td>{{ e.eventos }}</td></tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <div class="col-lg-6">
-            <h5>Eventos por país, departamento y ciudad</h5>
-            <table class="table table-sm bg-white">
-              <thead class="table-dark"><tr><th>País</th><th>Departamento</th><th>Ciudad</th><th>Evento</th><th>Estado</th></tr></thead>
-              <tbody>
-                @for (e of d.eventosUbicacion; track $index) {
-                  <tr>
-                    <td>{{ e.pais }}</td><td>{{ e.departamento }}</td><td>{{ e.ciudad }}</td><td>{{ e.evento }}</td>
-                    <td><span [class]="'badge ' + badge(e.estado)">{{ e.estado }}</span></td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+          <div class="col-xl-6">
+            <div class="card h-100">
+              <div class="ev-card-header"><h2 class="ev-card-title"><i class="bi bi-pin-map"></i> Eventos creados por agente y por ciudad</h2></div>
+              <div class="table-responsive" style="max-height: 380px">
+                <table class="table ev-table table-hover">
+                  <thead class="sticky-top"><tr><th>Agente</th><th>Ciudad</th><th class="text-end">Eventos</th></tr></thead>
+                  <tbody>
+                    @for (e of d.eventosAgenteCiudad; track $index) {
+                      <tr><td class="fw-semibold">{{ e.agente }}</td><td><i class="bi bi-geo-alt text-muted"></i> {{ e.ciudad }}</td><td class="text-end ev-num">{{ e.eventos }}</td></tr>
+                    } @empty { <tr><td colspan="3"><div class="ev-empty py-4"><i class="bi bi-inbox"></i>Sin datos</div></td></tr> }
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <div class="col-12">
-            <h5>Historial de reservas por cliente</h5>
-            <table class="table table-sm bg-white">
-              <thead class="table-dark"><tr><th>Cliente</th><th>Reserva</th><th>Evento</th><th>Fecha</th><th>Entradas</th><th>Valor</th><th>Estado</th></tr></thead>
-              <tbody>
-                @for (h of d.historial; track h.id_reserva) {
-                  <tr>
-                    <td>{{ h.cliente }}</td><td>{{ h.id_reserva }}</td><td>{{ h.evento }}</td>
-                    <td>{{ h.fecha_hora | date: 'medium' }}</td><td>{{ h.numero_entradas }}</td>
-                    <td>{{ h.valor_total | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
-                    <td><span [class]="'badge ' + badge(h.estado)">{{ h.estado }}</span></td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+            <div class="card h-100">
+              <div class="ev-card-header"><h2 class="ev-card-title"><i class="bi bi-globe-americas"></i> Eventos por país, departamento y ciudad</h2></div>
+              <div class="table-responsive" style="max-height: 380px">
+                <table class="table ev-table table-hover">
+                  <thead class="sticky-top"><tr><th>Evento</th><th>Ubicación</th><th>Estado</th></tr></thead>
+                  <tbody>
+                    @for (e of d.eventosUbicacion; track $index) {
+                      <tr>
+                        <td class="fw-semibold">{{ e.evento }}</td>
+                        <td class="text-muted small">{{ e.ciudad }}, {{ e.departamento }} · {{ e.pais }}</td>
+                        <td><span [class]="badge(e.estado)">{{ e.estado }}</span></td>
+                      </tr>
+                    } @empty { <tr><td colspan="3"><div class="ev-empty py-4"><i class="bi bi-inbox"></i>Sin datos</div></td></tr> }
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
-          <div class="col-lg-6">
-            <h5>Reservas canceladas y su causa</h5>
-            <table class="table table-sm bg-white">
-              <thead class="table-dark"><tr><th>Reserva</th><th>Cliente</th><th>Evento</th><th>Causa</th></tr></thead>
-              <tbody>
-                @for (r of d.reservasCanceladas; track r.id_reserva) {
-                  <tr><td>{{ r.id_reserva }}</td><td>{{ r.cliente }}</td><td>{{ r.evento }}</td><td>{{ r.causa }}</td></tr>
-                } @empty { <tr><td colspan="4" class="text-muted">Sin datos</td></tr> }
-              </tbody>
-            </table>
+          <div class="col-12">
+            <div class="card h-100">
+              <div class="ev-card-header"><h2 class="ev-card-title"><i class="bi bi-clock-history"></i> Historial de reservas por cliente</h2></div>
+              <div class="table-responsive" style="max-height: 380px">
+                <table class="table ev-table table-hover">
+                  <thead class="sticky-top"><tr><th>Cliente</th><th>Reserva</th><th>Evento</th><th>Fecha</th><th class="text-end">Entradas</th><th class="text-end">Valor</th><th>Estado</th></tr></thead>
+                  <tbody>
+                    @for (h of d.historial; track h.id_reserva) {
+                      <tr>
+                        <td class="fw-semibold">{{ h.cliente }}</td><td class="ev-id">#{{ h.id_reserva }}</td><td>{{ h.evento }}</td>
+                        <td class="ev-num">{{ h.fecha_hora | date: 'd MMM y, h:mm a' }}</td><td class="text-end ev-num">{{ h.numero_entradas }}</td>
+                        <td class="text-end ev-num fw-semibold">{{ h.valor_total | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
+                        <td><span [class]="badge(h.estado)">{{ h.estado }}</span></td>
+                      </tr>
+                    } @empty { <tr><td colspan="7"><div class="ev-empty py-4"><i class="bi bi-inbox"></i>Sin datos</div></td></tr> }
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
-          <div class="col-lg-6">
-            <h5>Eventos cancelados y su causa</h5>
-            <table class="table table-sm bg-white">
-              <thead class="table-dark"><tr><th>Evento</th><th>Ciudad</th><th>Fecha</th><th>Causa</th></tr></thead>
-              <tbody>
-                @for (e of d.eventosCancelados; track e.codigo_evento) {
-                  <tr><td>{{ e.evento }}</td><td>{{ e.ciudad }}</td><td>{{ e.fecha_inicio | date: 'medium' }}</td><td>{{ e.causa }}</td></tr>
-                } @empty { <tr><td colspan="4" class="text-muted">Sin datos</td></tr> }
-              </tbody>
-            </table>
+          <div class="col-xl-6">
+            <div class="card h-100">
+              <div class="ev-card-header"><h2 class="ev-card-title"><i class="bi bi-x-octagon"></i> Reservas canceladas y su causa</h2></div>
+              <div class="table-responsive" style="max-height: 380px">
+                <table class="table ev-table table-hover">
+                  <thead class="sticky-top"><tr><th>Reserva</th><th>Cliente</th><th>Evento</th><th>Causa</th></tr></thead>
+                  <tbody>
+                    @for (r of d.reservasCanceladas; track r.id_reserva) {
+                      <tr><td class="ev-id">#{{ r.id_reserva }}</td><td class="fw-semibold">{{ r.cliente }}</td><td>{{ r.evento }}</td><td class="text-muted">{{ r.causa }}</td></tr>
+                    } @empty { <tr><td colspan="4"><div class="ev-empty py-4"><i class="bi bi-inbox"></i>Sin datos</div></td></tr> }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xl-6">
+            <div class="card h-100">
+              <div class="ev-card-header"><h2 class="ev-card-title"><i class="bi bi-calendar-x"></i> Eventos cancelados y su causa</h2></div>
+              <div class="table-responsive" style="max-height: 380px">
+                <table class="table ev-table table-hover">
+                  <thead class="sticky-top"><tr><th>Evento</th><th>Ciudad</th><th>Fecha</th><th>Causa</th></tr></thead>
+                  <tbody>
+                    @for (e of d.eventosCancelados; track e.codigo_evento) {
+                      <tr><td class="fw-semibold">{{ e.evento }}</td><td>{{ e.ciudad }}</td><td class="ev-num">{{ e.fecha_inicio | date: 'd MMM y' }}</td><td class="text-muted">{{ e.causa }}</td></tr>
+                    } @empty { <tr><td colspan="4"><div class="ev-empty py-4"><i class="bi bi-inbox"></i>Sin datos</div></td></tr> }
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       } @else if (!error()) {
-        <p class="text-muted">Cargando reportes...</p>
+        <div class="row g-3 mb-4">
+          @for (i of [1, 2, 3, 4, 5]; track i) {
+            <div class="col-6 col-md-4 col-xl"><div class="card ev-kpi"><div class="w-100">
+              <div class="ev-skeleton mb-2" style="height:26px;width:50%"></div><div class="ev-skeleton" style="width:70%"></div>
+            </div></div></div>
+          }
+        </div>
+        <div class="card p-4"><div class="ev-skeleton mb-3" style="width:30%"></div><div class="ev-skeleton" style="height:180px"></div></div>
       }
     </div>
   `
@@ -176,6 +226,7 @@ export class DashboardComponent implements OnInit {
   d = signal<any | null>(null);
   error = signal('');
   badge = badgeClass;
+  initials = initials;
 
   ngOnInit(): void {
     forkJoin({
@@ -195,18 +246,27 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  tarjetas(g: Record<string, number>): { label: string; valor: number }[] {
+  tarjetas(g: Record<string, number>) {
     return [
-      { label: 'Clientes', valor: g['clientes'] },
-      { label: 'Agentes', valor: g['agentes'] },
-      { label: 'Administradores', valor: g['administradores'] },
-      { label: 'Reservas', valor: g['reservas'] },
-      { label: 'Eventos', valor: g['eventos'] }
+      { label: 'Clientes', valor: g['clientes'], icon: 'bi-people', tone: 'tone-primary' },
+      { label: 'Agentes', valor: g['agentes'], icon: 'bi-person-badge', tone: 'tone-gold' },
+      { label: 'Administradores', valor: g['administradores'], icon: 'bi-shield-lock', tone: 'tone-ink' },
+      { label: 'Reservas', valor: g['reservas'], icon: 'bi-ticket-detailed', tone: 'tone-success' },
+      { label: 'Eventos', valor: g['eventos'], icon: 'bi-calendar-event', tone: 'tone-info' }
     ];
   }
 
-  porcentaje(valor: number, lista: { ingresos: number }[]): number {
-    const max = Math.max(...lista.map((x) => x.ingresos), 0);
-    return max ? Math.round((valor / max) * 100) : 0;
+  /** Serie de 12 meses (los meses sin datos quedan en cero) con porcentaje respecto al máximo. */
+  serieMensual(lista: { mes: number; ingresos: number }[]) {
+    const porMes = new Map(lista.map((x) => [Number(x.mes), Number(x.ingresos) || 0]));
+    const max = Math.max(...porMes.values(), 0);
+    return MESES.map((_, i) => {
+      const ingresos = porMes.get(i + 1) ?? 0;
+      return { mes: i + 1, ingresos, pct: max ? Math.round((ingresos / max) * 100) : 0 };
+    });
+  }
+
+  totalAnual(lista: { ingresos: number }[]): number {
+    return lista.reduce((s, x) => s + (Number(x.ingresos) || 0), 0);
   }
 }

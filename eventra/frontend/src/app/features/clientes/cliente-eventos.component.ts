@@ -1,73 +1,158 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { Evento } from '../../core/models/evento.model';
 import { EventoService } from '../../core/services/evento.service';
 import { ReservaService } from '../../core/services/reserva.service';
-import { badgeClass } from '../../shared/utils';
+import { badgeClass, posterGradient } from '../../shared/utils';
 
 @Component({
   selector: 'app-cliente-eventos',
   standalone: true,
   imports: [FormsModule, CurrencyPipe, DatePipe, RouterLink],
   template: `
-    <div class="container py-4">
-      <h3 class="mb-3">Eventos disponibles</h3>
+    <div class="ev-page">
+      <header class="ev-page-header">
+        <div>
+          <div class="ev-eyebrow"><i class="bi bi-stars"></i> Cartelera</div>
+          <h1 class="ev-page-title">Eventos disponibles</h1>
+          <p class="ev-page-sub">Elige una función y reserva tus entradas en segundos.</p>
+        </div>
+        <div class="ev-input-icon ev-search">
+          <i class="bi bi-search"></i>
+          <input class="form-control" type="search" placeholder="Buscar evento, teatro o ciudad..."
+                 [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" aria-label="Buscar eventos">
+        </div>
+      </header>
+
       @if (mensaje()) {
-        <div class="alert alert-success">{{ mensaje() }} <a routerLink="/cliente/reservas">Ver mis reservas</a></div>
+        <div class="ev-alert success">
+          <i class="bi bi-check-circle-fill"></i>
+          <span>{{ mensaje() }} <a class="fw-semibold" routerLink="/cliente/reservas">Ver mis reservas <i class="bi bi-arrow-right"></i></a></span>
+          <button class="ev-alert-close" (click)="mensaje.set('')" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+        </div>
       }
-      @if (error()) { <div class="alert alert-danger">{{ error() }}</div> }
-
-      @if (seleccionado(); as e) {
-        <form class="card card-body mb-4 border-primary" (ngSubmit)="confirmar()" #f="ngForm">
-          <h5>Reservar: {{ e.nombre }}</h5>
-          <div class="row g-3 align-items-end">
-            <div class="col-md-3">
-              <label class="form-label" for="entradas">Número de entradas</label>
-              <input class="form-control" id="entradas" name="entradas" type="number" min="1" [(ngModel)]="entradas" required>
-            </div>
-            <div class="col-md-5">
-              <label class="form-label" for="obs">Observaciones</label>
-              <input class="form-control" id="obs" name="obs" [(ngModel)]="observaciones">
-            </div>
-            <div class="col-md-4">
-              <div class="fw-bold">Valor total: {{ total() | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</div>
-              <button class="btn btn-success me-2 mt-2" type="submit" [disabled]="f.invalid">Confirmar reserva</button>
-              <button class="btn btn-secondary mt-2" type="button" (click)="seleccionado.set(null)">Cancelar</button>
-            </div>
-          </div>
-        </form>
+      @if (error() && !seleccionado()) {
+        <div class="ev-alert danger"><i class="bi bi-exclamation-octagon-fill"></i><span>{{ error() }}</span></div>
       }
 
-      <div class="row row-cols-1 row-cols-md-3 g-3">
-        @for (e of lista(); track e.codigo_evento) {
-          <div class="col">
-            <div class="card h-100 shadow-sm">
-              <div class="card-body">
-                <div class="d-flex justify-content-between">
-                  <h5 class="card-title">{{ e.nombre }}</h5>
-                  <span [class]="'badge align-self-start ' + badge(e.estado)">{{ e.estado }}</span>
+      @if (lista().length) {
+        <div class="ev-chips mb-4">
+          @for (e of estados(); track e.nombre) {
+            <button class="ev-chip" [class.active]="filtro() === e.nombre" (click)="filtro.set(e.nombre)">
+              {{ e.nombre }}<span class="n">{{ e.total }}</span>
+            </button>
+          }
+        </div>
+      }
+
+      <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        @if (cargando()) {
+          @for (i of [1, 2, 3]; track i) {
+            <div class="col">
+              <div class="ev-event">
+                <div class="ev-event-poster ev-skeleton" style="border-radius:0;height:150px"></div>
+                <div class="ev-event-body">
+                  <div class="ev-skeleton mb-3" style="width:70%;height:20px"></div>
+                  <div class="ev-skeleton mb-2"></div><div class="ev-skeleton" style="width:60%"></div>
                 </div>
-                <p class="card-text text-muted">{{ e.descripcion }}</p>
-                <ul class="list-unstyled small mb-0">
-                  <li><strong>Teatro:</strong> {{ e.teatro }} ({{ e.ciudad }})</li>
-                  <li><strong>Inicio:</strong> {{ e.fecha_inicio | date: 'medium' }}</li>
-                  <li><strong>Fin:</strong> {{ e.fecha_fin | date: 'medium' }}</li>
-                  <li><strong>Precio:</strong> {{ e.precio_base | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</li>
+              </div>
+            </div>
+          }
+        }
+        @for (e of visibles(); track e.codigo_evento) {
+          <div class="col">
+            <article class="ev-event">
+              <div class="ev-event-poster" [style.background]="poster(e.nombre)">
+                <div class="ev-date">
+                  <div class="d">{{ e.fecha_inicio | date: 'd' }}</div>
+                  <div class="m">{{ e.fecha_inicio | date: 'MMM' }}</div>
+                </div>
+                <span [class]="badge(e.estado)">{{ e.estado }}</span>
+                <i class="bi bi-ticket-perforated"></i>
+              </div>
+              <div class="ev-event-body">
+                <h3 class="ev-event-title">{{ e.nombre }}</h3>
+                <p class="ev-event-desc">{{ e.descripcion || 'Sin descripción.' }}</p>
+                <ul class="ev-meta">
+                  <li><i class="bi bi-geo-alt"></i> {{ e.teatro }} · {{ e.ciudad }}</li>
+                  <li><i class="bi bi-clock"></i> {{ e.fecha_inicio | date: 'EEE d MMM, h:mm a' }} – {{ e.fecha_fin | date: 'h:mm a' }}</li>
+                  <li><i class="bi bi-people"></i> Capacidad: {{ e.capacidad }} personas</li>
                 </ul>
               </div>
-              <div class="card-footer bg-white">
-                <button class="btn btn-primary btn-sm" (click)="reservar(e)">Reservar</button>
+              <div class="ev-event-foot">
+                <div class="ev-price">
+                  <small>Desde</small>
+                  <strong>{{ e.precio_base | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong>
+                </div>
+                <button class="btn btn-primary" (click)="reservar(e)"><i class="bi bi-ticket-perforated"></i> Reservar</button>
               </div>
-            </div>
+            </article>
           </div>
-        } @empty {
-          <p class="text-muted">No hay eventos disponibles.</p>
         }
       </div>
+
+      @if (!cargando() && !visibles().length) {
+        <div class="card"><div class="ev-empty">
+          <i class="bi bi-calendar-x"></i>
+          <strong>No encontramos eventos</strong>
+          {{ busqueda() || filtro() !== 'Todos' ? 'Prueba con otra búsqueda o filtro.' : 'Vuelve pronto: la cartelera se actualiza constantemente.' }}
+        </div></div>
+      }
     </div>
+
+    <!-- Reserva -->
+    @if (seleccionado(); as e) {
+      <div class="ev-modal-backdrop" (click)="seleccionado.set(null)">
+        <form class="ev-modal" style="max-width:500px" (ngSubmit)="confirmar()" #f="ngForm" (click)="$event.stopPropagation()">
+          <div class="d-flex align-items-start gap-3 mb-3">
+            <div class="ev-date border">
+              <div class="d">{{ e.fecha_inicio | date: 'd' }}</div>
+              <div class="m">{{ e.fecha_inicio | date: 'MMM' }}</div>
+            </div>
+            <div class="flex-grow-1 min-w-0">
+              <div class="ev-eyebrow mb-1">Reservar entradas</div>
+              <h5 class="mb-1">{{ e.nombre }}</h5>
+              <small class="text-muted"><i class="bi bi-geo-alt"></i> {{ e.teatro }} · {{ e.fecha_inicio | date: 'h:mm a' }}</small>
+            </div>
+            <button type="button" class="btn-icon" (click)="seleccionado.set(null)" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+          </div>
+
+          @if (error()) {
+            <div class="ev-alert danger"><i class="bi bi-exclamation-octagon-fill"></i><span>{{ error() }}</span></div>
+          }
+
+          <div class="mb-3">
+            <label class="form-label" for="entradas">Número de entradas</label>
+            <div class="d-flex align-items-center gap-3">
+              <div class="ev-stepper">
+                <button type="button" (click)="entradas = entradas - 1" [disabled]="entradas <= 1" aria-label="Menos"><i class="bi bi-dash"></i></button>
+                <input id="entradas" name="entradas" type="number" min="1" [(ngModel)]="entradas" required>
+                <button type="button" (click)="entradas = entradas + 1" aria-label="Más"><i class="bi bi-plus"></i></button>
+              </div>
+              <small class="text-muted">{{ e.precio_base | currency: 'COP' : 'symbol-narrow' : '1.0-0' }} c/u</small>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label" for="obs">Observaciones <span class="text-muted fw-normal">(opcional)</span></label>
+            <input class="form-control" id="obs" name="obs" placeholder="Ej.: asientos juntos" [(ngModel)]="observaciones">
+          </div>
+
+          <div class="ev-total mb-3">
+            <div><small>Valor total</small><div class="small">{{ entradas }} entrada{{ entradas === 1 ? '' : 's' }}</div></div>
+            <strong>{{ total() | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-light flex-fill" type="button" (click)="seleccionado.set(null)">Cancelar</button>
+            <button class="btn btn-primary flex-fill" type="submit" [disabled]="f.invalid || entradas < 1">
+              <i class="bi bi-check2-circle"></i> Confirmar reserva
+            </button>
+          </div>
+        </form>
+      </div>
+    }
   `
 })
 export class ClienteEventosComponent implements OnInit {
@@ -82,11 +167,37 @@ export class ClienteEventosComponent implements OnInit {
   entradas = 1;
   observaciones = '';
   badge = badgeClass;
+  poster = posterGradient;
+  cargando = signal(true);
+  busqueda = signal('');
+  filtro = signal('Todos');
+
+  estados = computed(() => {
+    const conteo = new Map<string, number>();
+    for (const e of this.lista()) conteo.set(e.estado, (conteo.get(e.estado) ?? 0) + 1);
+    return [{ nombre: 'Todos', total: this.lista().length }, ...[...conteo].map(([nombre, total]) => ({ nombre, total }))];
+  });
+
+  visibles = computed(() => {
+    const q = this.busqueda().trim().toLowerCase();
+    const f = this.filtro();
+    return this.lista().filter(
+      (e) =>
+        (f === 'Todos' || e.estado === f) &&
+        (!q || [e.nombre, e.teatro, e.ciudad, e.descripcion].some((v) => v?.toLowerCase().includes(q)))
+    );
+  });
 
   ngOnInit(): void {
     this.eventos.getAll().subscribe({
-      next: (e) => this.lista.set(e.filter((x) => x.estado !== 'Finalizado' && x.estado !== 'Cancelado')),
-      error: (err) => this.error.set(err?.error?.message ?? 'No se pudieron cargar los eventos')
+      next: (e) => {
+        this.lista.set(e.filter((x) => x.estado !== 'Finalizado' && x.estado !== 'Cancelado'));
+        this.cargando.set(false);
+      },
+      error: (err) => {
+        this.error.set(err?.error?.message ?? 'No se pudieron cargar los eventos');
+        this.cargando.set(false);
+      }
     });
   }
 

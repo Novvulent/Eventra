@@ -1,36 +1,153 @@
-<div class="container-fluid py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="m-0">{{ config.title }}</h3>
+<div class="ev-page">
+  <header class="ev-page-header">
+    <div>
+      <div class="ev-eyebrow"><i [class]="'bi ' + meta.icon"></i> {{ meta.section }}</div>
+      <h1 class="ev-page-title">{{ config.title }}</h1>
+      <p class="ev-page-sub">{{ meta.sub }}</p>
+    </div>
     @if (config.canCreate !== false) {
-      <button class="btn btn-primary" (click)="openNew()">Nuevo {{ config.singular }}</button>
+      <button class="btn btn-primary" (click)="openNew()">
+        <i class="bi bi-plus-lg"></i> Nuevo {{ config.singular }}
+      </button>
     }
+  </header>
+
+  @if (message()) {
+    <div class="ev-alert success">
+      <i class="bi bi-check-circle-fill"></i><span>{{ message() }}</span>
+      <button class="ev-alert-close" (click)="message.set('')" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+    </div>
+  }
+  @if (error() && !showForm()) {
+    <div class="ev-alert danger">
+      <i class="bi bi-exclamation-octagon-fill"></i><span>{{ error() }}</span>
+      <button class="ev-alert-close" (click)="error.set('')" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+    </div>
+  }
+
+  <div class="card">
+    <div class="ev-card-header">
+      <div class="ev-toolbar flex-grow-1">
+        <div class="ev-input-icon ev-search">
+          <i class="bi bi-search"></i>
+          <input class="form-control" type="search" placeholder="Buscar en {{ config.title.toLowerCase() }}..."
+                 [value]="search()" (input)="search.set($any($event.target).value)" aria-label="Buscar">
+        </div>
+        <span class="ev-count ms-auto">
+          @if (search()) { {{ filtered().length }} de }{{ rows().length }} registro{{ rows().length === 1 ? '' : 's' }}
+        </span>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table ev-table ev-compact table-hover">
+        <thead>
+          <tr>
+            @for (c of config.columns; track c.key) { <th>{{ c.label }}</th> }
+            @if (config.canEdit !== false || config.canDelete !== false) { <th class="text-end ev-sticky-end">Acciones</th> }
+          </tr>
+        </thead>
+        <tbody>
+          @if (loading()) {
+            @for (i of [1, 2, 3, 4]; track i) {
+              <tr>
+                @for (c of config.columns; track c.key) { <td><div class="ev-skeleton"></div></td> }
+                <td><div class="ev-skeleton"></div></td>
+              </tr>
+            }
+          } @else {
+            @for (r of filtered(); track r[config.pk]) {
+              <tr>
+                @for (c of config.columns; track c.key; let first = $first) {
+                  <td>
+                    @switch (c.type) {
+                      @case ('date') { <span class="ev-num">{{ r[c.key] | date: 'd MMM y, h:mm a' }}</span> }
+                      @case ('money') { <span class="ev-num fw-semibold">{{ r[c.key] | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</span> }
+                      @case ('bool') {
+                        @if (r[c.key]) { <span class="ev-badge success">Sí</span> } @else { <span class="ev-badge muted">No</span> }
+                      }
+                      @case ('list') { <span class="text-muted">{{ (r[c.key] || []).join(', ') || '—' }}</span> }
+                      @case ('badge') { <span [class]="badge(r[c.key])">{{ r[c.key] }}</span> }
+                      @default {
+                        @if (first && c.key === config.pk) { <span class="ev-id">#{{ r[c.key] }}</span> }
+                        @else { <span [attr.title]="r[c.key]">{{ r[c.key] ?? '—' }}</span> }
+                      }
+                    }
+                  </td>
+                }
+                @if (config.canEdit !== false || config.canDelete !== false) {
+                  <td class="text-end text-nowrap ev-sticky-end">
+                    @if (config.canEdit !== false) {
+                      <button class="btn-icon me-1" (click)="openEdit(r)" title="Editar" aria-label="Editar"><i class="bi bi-pencil"></i></button>
+                    }
+                    @if (config.canDelete !== false) {
+                      <button class="btn-icon danger" (click)="toDelete.set(r)" title="Eliminar" aria-label="Eliminar"><i class="bi bi-trash3"></i></button>
+                    }
+                  </td>
+                }
+              </tr>
+            } @empty {
+              <tr>
+                <td [attr.colspan]="config.columns.length + 1">
+                  <div class="ev-empty">
+                    <i [class]="'bi ' + (search() ? 'bi-search' : meta.icon)"></i>
+                    @if (search()) {
+                      <strong>Sin resultados</strong>No hay coincidencias para “{{ search() }}”.
+                    } @else {
+                      <strong>Aún no hay {{ config.title.toLowerCase() }}</strong>
+                      @if (config.canCreate !== false) { Crea el primero con el botón “Nuevo {{ config.singular }}”. }
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
+</div>
 
-  @if (message()) { <div class="alert alert-success">{{ message() }}</div> }
-  @if (error()) { <div class="alert alert-danger">{{ error() }}</div> }
+<!-- Formulario de registro / edición -->
+@if (showForm()) {
+  <div class="ev-modal-backdrop" (click)="cancel()">
+    <form class="ev-modal wide" #f="ngForm" (ngSubmit)="save()" (click)="$event.stopPropagation()">
+      <div class="d-flex align-items-start gap-3 mb-4">
+        <span class="ev-icon-chip"><i [class]="'bi ' + (editingId === null ? 'bi-plus-lg' : 'bi-pencil')"></i></span>
+        <div class="flex-grow-1">
+          <h5 class="mb-0">{{ editingId === null ? 'Registrar' : 'Editar' }} {{ config.singular }}</h5>
+          <small class="text-muted">
+            @if (editingId === null) { Completa los campos para crear el registro. } @else { Registro #{{ editingId }} }
+          </small>
+        </div>
+        <button type="button" class="btn-icon" (click)="cancel()" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+      </div>
 
-  @if (showForm()) {
-    <form class="card card-body mb-4" #f="ngForm" (ngSubmit)="save()">
-      <h5 class="mb-3">{{ editingId === null ? 'Registrar' : 'Editar' }} {{ config.singular }}</h5>
+      @if (error()) {
+        <div class="ev-alert danger"><i class="bi bi-exclamation-octagon-fill"></i><span>{{ error() }}</span></div>
+      }
+
       <div class="row g-3">
         @for (field of fields(); track field.key) {
-          <div [class]="field.type === 'textarea' || field.type === 'phones' ? 'col-12' : 'col-md-4'">
+          <div [class]="field.type === 'textarea' || field.type === 'phones' ? 'col-12' : 'col-md-6'">
             @if (field.type === 'checkbox') {
-              <div class="form-check mt-4">
-                <input class="form-check-input" type="checkbox" [id]="field.key" [name]="field.key" [(ngModel)]="model[field.key]">
+              <div class="form-check form-switch mt-md-4 pt-md-2">
+                <input class="form-check-input" type="checkbox" role="switch" [id]="field.key" [name]="field.key" [(ngModel)]="model[field.key]">
                 <label class="form-check-label" [attr.for]="field.key">{{ field.label }}</label>
               </div>
             } @else {
-              <label class="form-label" [attr.for]="field.key">{{ field.label }}</label>
+              <label class="form-label" [attr.for]="field.key">
+                {{ field.label }} @if (isRequired(field)) { <span class="text-danger">*</span> }
+              </label>
               @switch (field.type) {
                 @case ('textarea') {
-                  <textarea class="form-control" rows="2" [id]="field.key" [name]="field.key"
+                  <textarea class="form-control" rows="3" [id]="field.key" [name]="field.key"
                             [(ngModel)]="model[field.key]" [required]="isRequired(field)"></textarea>
                 }
                 @case ('select') {
                   <select class="form-select" [id]="field.key" [name]="field.key"
                           [(ngModel)]="model[field.key]" [required]="isRequired(field)">
-                    <option [ngValue]="undefined">-- Seleccione --</option>
+                    <option [ngValue]="undefined">Seleccione...</option>
                     @for (o of optionsFor(field); track o.value) {
                       <option [ngValue]="o.value">{{ o.label }}</option>
                     }
@@ -47,6 +164,7 @@
                 @default {
                   <input class="form-control" [type]="inputType(field)" [id]="field.key" [name]="field.key"
                          [(ngModel)]="model[field.key]" [required]="isRequired(field)"
+                         [placeholder]="field.type === 'phones' ? 'Separados por coma' : (field.type === 'password' && editingId !== null ? 'Dejar vacío para no cambiar' : '')"
                          [attr.autocomplete]="field.type === 'password' ? 'new-password' : null">
                 }
               }
@@ -54,49 +172,29 @@
           </div>
         }
       </div>
-      <div class="mt-3">
-        <button class="btn btn-success me-2" type="submit" [disabled]="f.invalid">Guardar</button>
-        <button class="btn btn-secondary" type="button" (click)="cancel()">Cancelar</button>
+
+      <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+        <button class="btn btn-light" type="button" (click)="cancel()">Cancelar</button>
+        <button class="btn btn-primary" type="submit" [disabled]="f.invalid || saving()">
+          @if (saving()) { <span class="spinner-border spinner-border-sm"></span> } @else { <i class="bi bi-check-lg"></i> }
+          Guardar
+        </button>
       </div>
     </form>
-  }
-
-  <div class="table-responsive">
-    <table class="table table-striped table-hover align-middle bg-white">
-      <thead class="table-dark">
-        <tr>
-          @for (c of config.columns; track c.key) { <th>{{ c.label }}</th> }
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (r of rows(); track r[config.pk]) {
-          <tr>
-            @for (c of config.columns; track c.key) {
-              <td>
-                @switch (c.type) {
-                  @case ('date') { {{ r[c.key] | date: 'medium' }} }
-                  @case ('money') { {{ r[c.key] | currency: 'COP' : 'symbol-narrow' : '1.0-0' }} }
-                  @case ('bool') { {{ r[c.key] ? 'Sí' : 'No' }} }
-                  @case ('list') { {{ (r[c.key] || []).join(', ') }} }
-                  @case ('badge') { <span [class]="'badge ' + badge(r[c.key])">{{ r[c.key] }}</span> }
-                  @default { {{ r[c.key] }} }
-                }
-              </td>
-            }
-            <td class="text-nowrap">
-              @if (config.canEdit !== false) {
-                <button class="btn btn-sm btn-outline-primary me-1" (click)="openEdit(r)">Editar</button>
-              }
-              @if (config.canDelete !== false) {
-                <button class="btn btn-sm btn-outline-danger" (click)="remove(r)">Eliminar</button>
-              }
-            </td>
-          </tr>
-        } @empty {
-          <tr><td [attr.colspan]="config.columns.length + 1" class="text-center text-muted">Sin registros</td></tr>
-        }
-      </tbody>
-    </table>
   </div>
-</div>
+}
+
+<!-- Confirmación de eliminación -->
+@if (toDelete(); as r) {
+  <div class="ev-modal-backdrop" (click)="toDelete.set(null)">
+    <div class="ev-modal" (click)="$event.stopPropagation()" role="alertdialog" aria-modal="true">
+      <div class="ev-modal-icon"><i class="bi bi-trash3"></i></div>
+      <h5>¿Eliminar {{ config.singular }} #{{ r[config.pk] }}?</h5>
+      <p class="text-muted mb-4">Esta acción no se puede deshacer. El registro se eliminará de la base de datos.</p>
+      <div class="d-flex justify-content-end gap-2">
+        <button class="btn btn-light" type="button" (click)="toDelete.set(null)">Cancelar</button>
+        <button class="btn btn-danger" type="button" (click)="remove(r)"><i class="bi bi-trash3"></i> Eliminar</button>
+      </div>
+    </div>
+  </div>
+}

@@ -10,66 +10,115 @@ import { CiudadService } from '../../core/services/localizacion.service';
   standalone: true,
   imports: [FormsModule, RouterLink],
   template: `
-    <div class="container py-4" style="max-width: 720px">
-      <div class="card shadow-sm">
-        <div class="card-body p-4">
-          <h3 class="mb-3 text-center">Registro</h3>
-          @if (error()) { <div class="alert alert-danger">{{ error() }}</div> }
-          @if (ok()) { <div class="alert alert-success">Registro exitoso. Redirigiendo al inicio de sesión...</div> }
+    <div class="ev-auth">
+      <section class="ev-auth-art">
+        <a class="ev-brand" routerLink="/login">
+          <span class="ev-brand-mark"><i class="bi bi-ticket-perforated-fill"></i></span>
+          <span class="ev-brand-name">Eventra</span>
+        </a>
+        <div>
+          <p class="ev-auth-quote">Únete al <em>elenco</em>. Reserva o produce eventos en minutos.</p>
+          <div class="ev-auth-feats">
+            <span><i class="bi bi-person-heart"></i> Clientes: reserva tus entradas</span>
+            <span><i class="bi bi-megaphone"></i> Agentes: publica tus eventos</span>
+          </div>
+        </div>
+        <div class="ev-auth-foot">Unidad Central del Valle del Cauca · Proyecto Integrador Web 1</div>
+      </section>
+
+      <section class="ev-auth-panel">
+        <div class="ev-auth-form wide">
+          <div class="ev-eyebrow"><i class="bi bi-person-plus"></i> Crear cuenta</div>
+          <h2>Registro</h2>
+          <p class="text-muted mb-4">Completa tus datos para empezar a usar Eventra.</p>
+
+          @if (error()) {
+            <div class="ev-alert danger"><i class="bi bi-exclamation-circle"></i><span>{{ error() }}</span></div>
+          }
+          @if (ok()) {
+            <div class="ev-alert success"><i class="bi bi-check-circle"></i><span>Registro exitoso. Redirigiendo al inicio de sesión...</span></div>
+          }
+
           <form (ngSubmit)="registrar()" #f="ngForm" class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label" for="rol">Tipo de usuario</label>
-              <select class="form-select" id="rol" name="rol" [(ngModel)]="m.rol" required>
-                <option value="cliente">Cliente</option>
-                <option value="agente">Agente</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label" for="identificacion">Cédula o pasaporte</label>
-              <input class="form-control" id="identificacion" name="identificacion" [(ngModel)]="m.identificacion" required>
+            <div class="col-12">
+              <span class="form-label d-block">Tipo de usuario</span>
+              <div class="ev-role-picker" role="radiogroup">
+                <button type="button" class="ev-role-option" [class.active]="m.rol === 'cliente'" (click)="m.rol = 'cliente'"
+                        role="radio" [attr.aria-checked]="m.rol === 'cliente'">
+                  <i class="bi bi-person-heart"></i>
+                  <span><strong>Cliente</strong><small>Quiero reservar entradas</small></span>
+                </button>
+                <button type="button" class="ev-role-option" [class.active]="m.rol === 'agente'" (click)="m.rol = 'agente'"
+                        role="radio" [attr.aria-checked]="m.rol === 'agente'">
+                  <i class="bi bi-megaphone"></i>
+                  <span><strong>Agente</strong><small>Quiero publicar eventos</small></span>
+                </button>
+              </div>
             </div>
             <div class="col-md-6">
               <label class="form-label" for="nombre_completo">Nombre completo</label>
-              <input class="form-control" id="nombre_completo" name="nombre_completo" [(ngModel)]="m.nombre_completo" required>
+              <div class="ev-input-icon"><i class="bi bi-person"></i>
+                <input class="form-control" id="nombre_completo" name="nombre_completo" placeholder="Ana Gómez" [(ngModel)]="m.nombre_completo" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="identificacion">Cédula o pasaporte</label>
+              <div class="ev-input-icon"><i class="bi bi-person-vcard"></i>
+                <input class="form-control" id="identificacion" name="identificacion" placeholder="1112223334" [(ngModel)]="m.identificacion" required>
+              </div>
             </div>
             <div class="col-md-6">
               <label class="form-label" for="correo">Correo</label>
-              <input class="form-control" id="correo" name="correo" type="email" [(ngModel)]="m.correo" required>
+              <div class="ev-input-icon"><i class="bi bi-envelope"></i>
+                <input class="form-control" id="correo" name="correo" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="email" [(ngModel)]="m.correo" required>
+              </div>
             </div>
             <div class="col-md-6">
               <label class="form-label" for="password">Contraseña</label>
-              <input class="form-control" id="password" name="password" type="password" [(ngModel)]="m.password" required>
+              <div class="ev-input-icon"><i class="bi bi-lock"></i>
+                <input class="form-control" id="password" name="password" type="password" placeholder="••••••••" autocomplete="new-password" [(ngModel)]="m.password" required>
+              </div>
             </div>
             <div class="col-md-6">
               <label class="form-label" for="direccion">Dirección</label>
-              <input class="form-control" id="direccion" name="direccion" [(ngModel)]="m.direccion" required>
+              <div class="ev-input-icon"><i class="bi bi-house"></i>
+                <input class="form-control" id="direccion" name="direccion" placeholder="Cra 1 # 2-3" [(ngModel)]="m.direccion" required>
+              </div>
             </div>
             <div class="col-md-6">
               <label class="form-label" for="id_ciudad">Ciudad</label>
-              <select class="form-select" id="id_ciudad" name="id_ciudad" [(ngModel)]="m.id_ciudad" required>
-                <option [ngValue]="undefined">-- Seleccione --</option>
-                @for (c of ciudades(); track c.id_ciudad) {
-                  <option [ngValue]="c.id_ciudad">{{ c.nombre }} - {{ c.departamento }}</option>
-                }
-              </select>
+              <div class="ev-input-icon"><i class="bi bi-geo-alt"></i>
+                <select class="form-select" id="id_ciudad" name="id_ciudad" [(ngModel)]="m.id_ciudad" required>
+                  <option [ngValue]="undefined">Selecciona tu ciudad</option>
+                  @for (c of ciudades(); track c.id_ciudad) {
+                    <option [ngValue]="c.id_ciudad">{{ c.nombre }} - {{ c.departamento }}</option>
+                  }
+                </select>
+              </div>
             </div>
-            <div class="col-md-6">
-              <label class="form-label" for="telefonos">Teléfonos (separados por coma)</label>
-              <input class="form-control" id="telefonos" name="telefonos" [(ngModel)]="m.telefonos">
+            <div [class]="m.rol === 'agente' ? 'col-md-6' : 'col-12'">
+              <label class="form-label" for="telefonos">Teléfonos <span class="text-muted fw-normal">(separados por coma)</span></label>
+              <div class="ev-input-icon"><i class="bi bi-telephone"></i>
+                <input class="form-control" id="telefonos" name="telefonos" placeholder="3001234567, 3107654321" [(ngModel)]="m.telefonos">
+              </div>
             </div>
             @if (m.rol === 'agente') {
               <div class="col-md-6">
                 <label class="form-label" for="experiencia">Años de experiencia</label>
-                <input class="form-control" id="experiencia" name="experiencia" type="number" min="0" [(ngModel)]="m.experiencia">
+                <div class="ev-input-icon"><i class="bi bi-award"></i>
+                  <input class="form-control" id="experiencia" name="experiencia" type="number" min="0" placeholder="0" [(ngModel)]="m.experiencia">
+                </div>
               </div>
             }
-            <div class="col-12">
-              <button class="btn btn-primary w-100" type="submit" [disabled]="f.invalid">Registrarme</button>
+            <div class="col-12 mt-4">
+              <button class="btn btn-primary btn-lg w-100" type="submit" [disabled]="f.invalid || ok()">
+                Crear mi cuenta <i class="bi bi-arrow-right"></i>
+              </button>
             </div>
           </form>
-          <p class="text-center mt-3 mb-0">¿Ya tienes cuenta? <a routerLink="/login">Inicia sesión</a></p>
+          <p class="text-center text-muted mt-4 mb-0">¿Ya tienes cuenta? <a class="fw-semibold" routerLink="/login">Inicia sesión</a></p>
         </div>
-      </div>
+      </section>
     </div>
   `
 })

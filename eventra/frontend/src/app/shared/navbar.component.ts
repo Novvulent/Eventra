@@ -1,55 +1,125 @@
-import { Component, computed, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, computed, inject, signal } from '@angular/core';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { filter } from 'rxjs';
 import { AuthService } from '../core/auth.service';
+import { initials } from './utils';
 
-interface NavLink { path: string; label: string; }
+interface NavLink { path: string; label: string; icon: string; }
+interface NavSection { title: string; links: NavLink[]; }
 
+/** Barra lateral de navegación según el rol del usuario autenticado. */
 @Component({
   selector: 'app-navbar',
   standalone: true,
   imports: [RouterLink, RouterLinkActive],
   template: `
-    <nav class="navbar navbar-expand bg-dark navbar-dark px-3 flex-wrap">
-      <a class="navbar-brand fw-bold" routerLink="/">Eventra</a>
-      <ul class="navbar-nav flex-wrap me-auto">
-        @for (l of links(); track l.path) {
-          <li class="nav-item">
-            <a class="nav-link" [routerLink]="l.path" routerLinkActive="active">{{ l.label }}</a>
-          </li>
+    <!-- Barra superior (solo móvil) -->
+    <header class="ev-topbar">
+      <button class="ev-menu-btn" type="button" (click)="open.set(true)" aria-label="Abrir menú">
+        <i class="bi bi-list"></i>
+      </button>
+      <a class="ev-brand" [routerLink]="home()">
+        <span class="ev-brand-mark"><i class="bi bi-ticket-perforated-fill"></i></span>
+        <span class="ev-brand-name">Eventra</span>
+      </a>
+    </header>
+
+    <div class="ev-backdrop" [class.open]="open()" (click)="open.set(false)"></div>
+
+    <aside class="ev-sidebar" [class.open]="open()">
+      <a class="ev-brand" [routerLink]="home()">
+        <span class="ev-brand-mark"><i class="bi bi-ticket-perforated-fill"></i></span>
+        <span class="ev-brand-name">Eventra</span>
+      </a>
+
+      <nav class="ev-nav">
+        @for (s of sections(); track s.title) {
+          <div class="ev-nav-section">{{ s.title }}</div>
+          @for (l of s.links; track l.path) {
+            <a [routerLink]="l.path" routerLinkActive="active">
+              <i [class]="'bi ' + l.icon"></i><span>{{ l.label }}</span>
+            </a>
+          }
         }
-      </ul>
+      </nav>
+
       @if (auth.usuario(); as u) {
-        <span class="text-light me-3 small">{{ u.nombre_completo }} ({{ u.rol }})</span>
-        <button class="btn btn-outline-light btn-sm" (click)="auth.logout()">Salir</button>
+        <div class="ev-user">
+          <span class="ev-avatar">{{ initials(u.nombre_completo) }}</span>
+          <div class="min-w-0">
+            <div class="ev-user-name text-truncate">{{ u.nombre_completo }}</div>
+            <div class="ev-user-role">{{ u.rol }}</div>
+          </div>
+          <button class="ev-logout" type="button" (click)="auth.logout()" title="Cerrar sesión" aria-label="Cerrar sesión">
+            <i class="bi bi-box-arrow-right"></i>
+          </button>
+        </div>
       }
-    </nav>
+    </aside>
   `
 })
 export class NavbarComponent {
   auth = inject(AuthService);
+  open = signal(false);
+  initials = initials;
 
-  links = computed<NavLink[]>(() => {
+  constructor() {
+    // Cierra el menú móvil al navegar
+    inject(Router).events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => this.open.set(false));
+  }
+
+  home = computed(() => {
     const u = this.auth.usuario();
-    if (!u) {
-      return [{ path: '/login', label: 'Ingresar' }, { path: '/registro', label: 'Registrarse' }];
-    }
+    return u ? this.auth.homeFor(u.rol) : '/login';
+  });
+
+  sections = computed<NavSection[]>(() => {
+    const u = this.auth.usuario();
+    if (!u) return [];
     if (u.rol === 'cliente') {
-      return [{ path: '/cliente/eventos', label: 'Eventos' }, { path: '/cliente/reservas', label: 'Mis reservas' }];
+      return [{
+        title: 'Cliente',
+        links: [
+          { path: '/cliente/eventos', label: 'Cartelera', icon: 'bi-stars' },
+          { path: '/cliente/reservas', label: 'Mis reservas', icon: 'bi-ticket-detailed' }
+        ]
+      }];
     }
     if (u.rol === 'agente') {
-      return [{ path: '/agente/eventos', label: 'Eventos' }, { path: '/agente/reservas', label: 'Reservas' }];
+      return [{
+        title: 'Agente',
+        links: [
+          { path: '/agente/eventos', label: 'Mis eventos', icon: 'bi-calendar-event' },
+          { path: '/agente/reservas', label: 'Reservas', icon: 'bi-ticket-detailed' }
+        ]
+      }];
     }
     return [
-      { path: '/admin/dashboard', label: 'Dashboard' },
-      { path: '/admin/paises', label: 'Países' },
-      { path: '/admin/departamentos', label: 'Departamentos' },
-      { path: '/admin/ciudades', label: 'Ciudades' },
-      { path: '/admin/personas', label: 'Personas' },
-      { path: '/admin/clientes', label: 'Clientes' },
-      { path: '/admin/agentes', label: 'Agentes' },
-      { path: '/admin/administradores', label: 'Administradores' },
-      { path: '/admin/eventos', label: 'Eventos' },
-      { path: '/admin/reservas', label: 'Reservas' }
+      { title: 'General', links: [{ path: '/admin/dashboard', label: 'Dashboard', icon: 'bi-grid-1x2' }] },
+      {
+        title: 'Operación',
+        links: [
+          { path: '/admin/eventos', label: 'Eventos', icon: 'bi-calendar-event' },
+          { path: '/admin/reservas', label: 'Reservas', icon: 'bi-ticket-detailed' }
+        ]
+      },
+      {
+        title: 'Usuarios',
+        links: [
+          { path: '/admin/personas', label: 'Personas', icon: 'bi-person-vcard' },
+          { path: '/admin/clientes', label: 'Clientes', icon: 'bi-people' },
+          { path: '/admin/agentes', label: 'Agentes', icon: 'bi-person-badge' },
+          { path: '/admin/administradores', label: 'Administradores', icon: 'bi-shield-lock' }
+        ]
+      },
+      {
+        title: 'Localización',
+        links: [
+          { path: '/admin/paises', label: 'Países', icon: 'bi-globe-americas' },
+          { path: '/admin/departamentos', label: 'Departamentos', icon: 'bi-map' },
+          { path: '/admin/ciudades', label: 'Ciudades', icon: 'bi-buildings' }
+        ]
+      }
     ];
   });
 }

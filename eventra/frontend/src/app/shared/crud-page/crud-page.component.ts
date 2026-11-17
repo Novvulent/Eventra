@@ -1,11 +1,27 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, Injector, OnInit, inject, signal } from '@angular/core';
+import { Component, Injector, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { CrudService } from '../../core/crud.service';
 import { CrudConfig, CrudField, Option } from '../crud.types';
 import { badgeClass } from '../utils';
+
+interface PageMeta { icon: string; section: string; sub: string; }
+
+/** Icono, sección y subtítulo de cada pantalla (por título del CRUD). */
+const META: Record<string, PageMeta> = {
+  'Países': { icon: 'bi-globe-americas', section: 'Localización', sub: 'Países disponibles para ubicar personas y eventos.' },
+  'Departamentos': { icon: 'bi-map', section: 'Localización', sub: 'Departamentos o estados asociados a cada país.' },
+  'Ciudades': { icon: 'bi-buildings', section: 'Localización', sub: 'Ciudades donde se realizan los eventos.' },
+  'Personas': { icon: 'bi-person-vcard', section: 'Usuarios', sub: 'Datos básicos de todas las personas del sistema.' },
+  'Clientes': { icon: 'bi-people', section: 'Usuarios', sub: 'Clientes registrados, sus puntos y preferencias.' },
+  'Agentes': { icon: 'bi-person-badge', section: 'Usuarios', sub: 'Agentes encargados de crear y gestionar eventos.' },
+  'Administradores': { icon: 'bi-shield-lock', section: 'Usuarios', sub: 'Usuarios con acceso total a la plataforma.' },
+  'Eventos': { icon: 'bi-calendar-event', section: 'Operación', sub: 'Funciones, teatros, fechas, capacidad y precios.' },
+  'Reservas': { icon: 'bi-ticket-detailed', section: 'Operación', sub: 'Reservas realizadas por los clientes.' }
+};
+const DEFAULT_META: PageMeta = { icon: 'bi-table', section: 'Administración', sub: 'Gestión de registros.' };
 
 /**
  * Pantalla genérica de CRUD: consulta, registro, actualización y eliminación.
@@ -26,6 +42,24 @@ export class CrudPageComponent implements OnInit {
   private service!: CrudService<any>;
 
   rows = signal<any[]>([]);
+  search = signal('');
+  loading = signal(true);
+  saving = signal(false);
+  toDelete = signal<any | null>(null);
+  meta: PageMeta = DEFAULT_META;
+
+  /** Filtro de texto en cliente sobre las columnas visibles. */
+  filtered = computed(() => {
+    const q = this.search().trim().toLowerCase();
+    const rows = this.rows();
+    if (!q) return rows;
+    return rows.filter((r) =>
+      this.config.columns.some((c) => {
+        const v = r[c.key];
+        return v !== null && v !== undefined && String(Array.isArray(v) ? v.join(' ') : v).toLowerCase().includes(q);
+      })
+    );
+  });
   options = signal<Record<string, Option[]>>({});
   showForm = signal(false);
   message = signal('');
@@ -38,6 +72,10 @@ export class CrudPageComponent implements OnInit {
   ngOnInit(): void {
     this.config = this.route.snapshot.data['config'] as CrudConfig;
     this.service = this.injector.get(this.config.service);
+    this.meta = META[this.config.title] ?? DEFAULT_META;
+    if (this.route.snapshot.routeConfig?.path?.startsWith('agente/')) {
+      this.meta = { ...this.meta, section: 'Panel del agente', sub: 'Registra nuevos eventos y consulta la cartelera completa.' };
+    }
     this.load();
     this.loadOptions();
   }
@@ -60,8 +98,14 @@ export class CrudPageComponent implements OnInit {
 
   private load(): void {
     this.service.getAll().subscribe({
-      next: (data) => this.rows.set(data),
-      error: (e) => this.error.set(this.msg(e))
+      next: (data) => {
+        this.rows.set(data);
+        this.loading.set(false);
+      },
+      error: (e) => {
+        this.error.set(this.msg(e));
+        this.loading.set(false);
+      }
     });
   }
 
@@ -104,6 +148,7 @@ export class CrudPageComponent implements OnInit {
 
   cancel(): void {
     this.showForm.set(false);
+    this.error.set('');
   }
 
   save(): void {
@@ -134,19 +179,24 @@ export class CrudPageComponent implements OnInit {
       ? this.service.update(this.editingId as number, payload)
       : this.service.create(payload);
 
+    this.saving.set(true);
     request.subscribe({
       next: () => {
+        this.saving.set(false);
         this.message.set(editing ? 'Registro actualizado correctamente' : 'Registro creado correctamente');
         this.error.set('');
         this.showForm.set(false);
         this.load();
       },
-      error: (e) => this.error.set(this.msg(e))
+      error: (e) => {
+        this.saving.set(false);
+        this.error.set(this.msg(e));
+      }
     });
   }
 
   remove(row: any): void {
-    if (!confirm('¿Seguro que desea eliminar este registro?')) return;
+    this.toDelete.set(null);
     this.service.delete(row[this.config.pk]).subscribe({
       next: (r) => {
         this.message.set(r.message);

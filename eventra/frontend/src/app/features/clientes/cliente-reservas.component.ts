@@ -1,5 +1,6 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { Reserva } from '../../core/models/reserva.model';
 import { ReservaService } from '../../core/services/reserva.service';
@@ -8,35 +9,69 @@ import { badgeClass } from '../../shared/utils';
 @Component({
   selector: 'app-cliente-reservas',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe],
+  imports: [CurrencyPipe, DatePipe, RouterLink],
   template: `
-    <div class="container py-4">
-      <h3 class="mb-3">Mis reservas</h3>
-      @if (error()) { <div class="alert alert-danger">{{ error() }}</div> }
-      <div class="table-responsive">
-        <table class="table table-striped align-middle bg-white">
-          <thead class="table-dark">
-            <tr>
-              <th>ID</th><th>Evento</th><th>Fecha de reserva</th><th>Entradas</th>
-              <th>Valor total</th><th>Estado</th><th>Causa de cancelación</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (r of reservas(); track r.id_reserva) {
+    <div class="ev-page">
+      <header class="ev-page-header">
+        <div>
+          <div class="ev-eyebrow"><i class="bi bi-ticket-detailed"></i> Cliente</div>
+          <h1 class="ev-page-title">Mis reservas</h1>
+          <p class="ev-page-sub">Consulta el estado de tus entradas y el historial de compras.</p>
+        </div>
+        <a class="btn btn-primary" routerLink="/cliente/eventos"><i class="bi bi-plus-lg"></i> Nueva reserva</a>
+      </header>
+
+      @if (error()) { <div class="ev-alert danger"><i class="bi bi-exclamation-octagon-fill"></i><span>{{ error() }}</span></div> }
+
+      <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3"><div class="card ev-kpi">
+          <span class="ev-kpi-icon tone-primary"><i class="bi bi-ticket-detailed"></i></span>
+          <div><div class="ev-kpi-value">{{ reservas().length }}</div><div class="ev-kpi-label">Reservas</div></div>
+        </div></div>
+        <div class="col-sm-6 col-lg-3"><div class="card ev-kpi">
+          <span class="ev-kpi-icon tone-success"><i class="bi bi-patch-check"></i></span>
+          <div><div class="ev-kpi-value">{{ resumen().confirmadas }}</div><div class="ev-kpi-label">Confirmadas</div></div>
+        </div></div>
+        <div class="col-sm-6 col-lg-3"><div class="card ev-kpi">
+          <span class="ev-kpi-icon tone-gold"><i class="bi bi-people"></i></span>
+          <div><div class="ev-kpi-value">{{ resumen().entradas }}</div><div class="ev-kpi-label">Entradas activas</div></div>
+        </div></div>
+        <div class="col-sm-6 col-lg-3"><div class="card ev-kpi">
+          <span class="ev-kpi-icon tone-info"><i class="bi bi-wallet2"></i></span>
+          <div><div class="ev-kpi-value" style="font-size:1.35rem">{{ resumen().total | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</div><div class="ev-kpi-label">Total invertido</div></div>
+        </div></div>
+      </div>
+
+      <div class="card">
+        <div class="ev-card-header"><h2 class="ev-card-title"><i class="bi bi-clock-history"></i> Historial</h2></div>
+        <div class="table-responsive">
+          <table class="table ev-table ev-compact table-hover">
+            <thead>
               <tr>
-                <td>{{ r.id_reserva }}</td>
-                <td>{{ r.evento }}</td>
-                <td>{{ r.fecha_hora | date: 'medium' }}</td>
-                <td>{{ r.numero_entradas }}</td>
-                <td>{{ r.valor_total | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
-                <td><span [class]="'badge ' + badge(r.estado)">{{ r.estado }}</span></td>
-                <td>{{ r.causa_cancelacion }}</td>
+                <th>ID</th><th>Evento</th><th>Fecha de reserva</th><th>Entradas</th>
+                <th>Valor total</th><th>Estado</th><th>Causa de cancelación</th>
               </tr>
-            } @empty {
-              <tr><td colspan="7" class="text-center text-muted">Aún no tienes reservas</td></tr>
-            }
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              @for (r of reservas(); track r.id_reserva) {
+                <tr>
+                  <td class="ev-id">#{{ r.id_reserva }}</td>
+                  <td class="fw-semibold">{{ r.evento }}</td>
+                  <td class="ev-num">{{ r.fecha_hora | date: 'd MMM y, h:mm a' }}</td>
+                  <td class="ev-num">{{ r.numero_entradas }}</td>
+                  <td class="ev-num fw-semibold">{{ r.valor_total | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
+                  <td><span [class]="badge(r.estado)">{{ r.estado }}</span></td>
+                  <td class="text-muted">{{ r.causa_cancelacion || '—' }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="7"><div class="ev-empty">
+                  <i class="bi bi-ticket-perforated"></i><strong>Aún no tienes reservas</strong>
+                  <a routerLink="/cliente/eventos">Explora la cartelera</a> y reserva tu primera función.
+                </div></td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   `
@@ -48,6 +83,15 @@ export class ClienteReservasComponent implements OnInit {
   reservas = signal<Reserva[]>([]);
   error = signal('');
   badge = badgeClass;
+
+  resumen = computed(() => {
+    const activas = this.reservas().filter((r) => r.estado !== 'Cancelada');
+    return {
+      confirmadas: this.reservas().filter((r) => r.estado === 'Confirmada').length,
+      entradas: activas.reduce((s, r) => s + Number(r.numero_entradas || 0), 0),
+      total: activas.reduce((s, r) => s + Number(r.valor_total || 0), 0)
+    };
+  });
 
   ngOnInit(): void {
     const u = this.auth.usuario();
