@@ -1,0 +1,66 @@
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="row g-3">
+  <div class="col-md-6">
+    <label class="form-label" for="id_cliente">Cliente <span class="text-danger">*</span></label>
+    <select id="id_cliente" class="form-select" formControlName="id_cliente">
+      <option [ngValue]="null">Seleccione...</option>
+      @for (o of clientes; track o.id_persona) {
+        <option [ngValue]="o.id_persona">{{ o.nombre_completo }}</option>
+      }
+    </select>
+    @if (invalid('id_cliente')) { <small class="text-danger">Este campo es obligatorio.</small> }
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="codigo_evento">Evento <span class="text-danger">*</span></label>
+    <select id="codigo_evento" class="form-select" formControlName="codigo_evento">
+      <option [ngValue]="null">Seleccione...</option>
+      @for (o of eventos; track o.codigo_evento) {
+        <option [ngValue]="o.codigo_evento">{{ o.nombre }}</option>
+      }
+    </select>
+    @if (invalid('codigo_evento')) { <small class="text-danger">Este campo es obligatorio.</small> }
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="numero_entradas">Número de entradas <span class="text-danger">*</span></label>
+    <input id="numero_entradas" type="number" step="any" class="form-control" formControlName="numero_entradas">
+    @if (invalid('numero_entradas')) { <small class="text-danger">Este campo es obligatorio.</small> }
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="valor_total">Valor total (vacío = precio x entradas)</label>
+    <input id="valor_total" type="number" step="any" class="form-control" formControlName="valor_total">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="fecha_hora">Fecha y hora (vacío = ahora)</label>
+    <input id="fecha_hora" type="datetime-local" class="form-control" formControlName="fecha_hora">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="estado">Estado</label>
+    <select id="estado" class="form-select" formControlName="estado">
+      <option [ngValue]="null">Seleccione...</option>
+      @for (o of opcionesEstado; track o) {
+        <option [ngValue]="o">{{ o }}</option>
+      }
+    </select>
+  </div>
+  <div class="col-12">
+    <label class="form-label" for="causa_cancelacion">Causa de cancelación</label>
+    <textarea id="causa_cancelacion" class="form-control" rows="3" formControlName="causa_cancelacion"></textarea>
+  </div>
+  <div class="col-12">
+    <label class="form-label" for="observaciones">Observaciones</label>
+    <textarea id="observaciones" class="form-control" rows="3" formControlName="observaciones"></textarea>
+  </div>
+  </div>
+
+  <hr class="my-4">
+
+  <!-- Acciones -->
+  <div class="d-flex justify-content-end gap-2">
+    <button type="button" class="btn btn-light" (click)="cancel.emit()">Cancelar</button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving">
+      @if (saving) { <span class="spinner-border spinner-border-sm"></span> } @else { <i class="bi bi-check-lg"></i> }
+      {{ submitLabel }}
+    </button>
+  </div>
+</form>

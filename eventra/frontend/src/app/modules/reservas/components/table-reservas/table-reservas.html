@@ -1,0 +1,74 @@
+
+<div class="table-responsive">
+  <table class="table ev-table ev-compact table-hover">
+    <thead>
+      <tr>
+          <th>ID</th>
+          <th>Cliente</th>
+          <th>Evento</th>
+          <th>Fecha y hora</th>
+          <th>Entradas</th>
+          <th>Valor total</th>
+          <th>Estado</th>
+          <th>Causa cancelación</th>
+          <th class="text-end ev-sticky-end">Opciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      @if (loading) {
+        @for (i of [1, 2, 3, 4]; track i) {
+          <tr>
+              <td><div class="ev-skeleton"></div></td>
+              <td><div class="ev-skeleton"></div></td>
+              <td><div class="ev-skeleton"></div></td>
+              <td><div class="ev-skeleton"></div></td>
+              <td><div class="ev-skeleton"></div></td>
+              <td><div class="ev-skeleton"></div></td>
+              <td><div class="ev-skeleton"></div></td>
+              <td><div class="ev-skeleton"></div></td>
+              <td class="ev-sticky-end"><div class="ev-skeleton"></div></td>
+          </tr>
+        }
+      } @else {
+        @for (item of reservas; track item.id_reserva) {
+          <tr>
+            <td><span class="ev-id">#{{ item.id_reserva }}</span></td>
+            <td><div class="d-flex align-items-center gap-2"><span class="ev-avatar sm soft">{{ initials(item.cliente) }}</span><span class="fw-semibold">{{ item.cliente }}</span></div></td>
+            <td><span [attr.title]="item.evento">{{ item.evento ?? '—' }}</span></td>
+            <td><span class="ev-num">{{ item.fecha_hora | date: 'd MMM y, h:mm a' }}</span></td>
+            <td><span class="ev-num">{{ item.numero_entradas }}</span></td>
+            <td><span class="ev-num fw-semibold">{{ item.valor_total | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</span></td>
+            <td><span [class]="badge(item.estado)">{{ item.estado }}</span></td>
+            <td><span class="text-muted" [attr.title]="item.causa_cancelacion">{{ item.causa_cancelacion || '—' }}</span></td>
+            <!-- Opciones -->
+            <td class="ev-sticky-end">
+              <div class="d-flex justify-content-end gap-1">
+                <app-button [config]="configDetailButton" (onClick)="click(item.id_reserva, 'detail')" />
+                @if (canEdit) {
+                  <app-button [config]="configEditButton" (onClick)="click(item.id_reserva, 'edit')" />
+                }
+                @if (canDelete) {
+                  <app-button [config]="configDeleteButton" (onClick)="click(item.id_reserva, 'delete')" />
+                }
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td [attr.colspan]="9">
+              <div class="ev-empty">
+                @if (search) {
+                  <i class="bi bi-search"></i>
+                  <strong>Sin resultados</strong>No hay coincidencias para “{{ search }}”.
+                } @else {
+                  <i class="bi bi-ticket-detailed"></i>
+                  <strong>No hay reservas registradas</strong>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>

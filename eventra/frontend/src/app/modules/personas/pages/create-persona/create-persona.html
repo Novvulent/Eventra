@@ -1,0 +1,17 @@
+
+<div class="ev-page">
+  <app-page-header icon="bi-person-vcard" [section]="section" title="Registrar persona"
+                   subtitle="Completa la información para registrar una nueva persona.">
+    <app-back />
+  </app-page-header>
+
+  <div class="card">
+    <div class="ev-card-header">
+      <h2 class="ev-card-title"><i class="bi bi-person-vcard"></i> Información de la persona</h2>
+    </div>
+    <div class="card-body p-4">
+      <app-form-persona [saving]="saving()" submitLabel="Registrar persona"
+                         (save)="createPersona($event)" (cancel)="goToList()" />
+    </div>
+  </div>
+</div>

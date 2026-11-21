@@ -1,0 +1,67 @@
+
+<div class="ev-page">
+  <app-page-header icon="bi-ticket-detailed" [section]="section" title="Detalle de la reserva"
+                   subtitle="Información registrada en la base de datos.">
+    <app-back />
+    <app-button [config]="editButtonConfig" (onClick)="edit()" />
+  </app-page-header>
+
+  @if (reserva(); as p) {
+    <div class="card mb-4">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3">
+          <span class="ev-kpi-icon tone-primary"><i class="bi bi-ticket-detailed"></i></span>
+          <div class="flex-grow-1 min-w-0">
+            <h4 class="fw-bold mb-1 text-truncate">{{ 'Reserva #' + p.id_reserva }}</h4>
+            <span class="text-muted">Reserva #{{ p.id_reserva }}</span>
+          </div>
+            <span [class]="badge(p.estado)">{{ p.estado }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ev-card-header">
+        <h2 class="ev-card-title"><i class="bi bi-info-circle"></i> Información general</h2>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-4">
+          <div class="col-sm-6 col-lg-4">
+            <small class="text-muted d-block mb-1">Cliente</small>
+            <span class="fw-medium">{{ p.cliente ?? '—' }}</span>
+          </div>
+          <div class="col-sm-6 col-lg-4">
+            <small class="text-muted d-block mb-1">Evento</small>
+            <span class="fw-medium">{{ p.evento ?? '—' }}</span>
+          </div>
+          <div class="col-sm-6 col-lg-4">
+            <small class="text-muted d-block mb-1">Fecha y hora</small>
+            <span class="fw-medium">{{ p.fecha_hora | date: 'EEEE d MMMM y, h:mm a' }}</span>
+          </div>
+          <div class="col-sm-6 col-lg-4">
+            <small class="text-muted d-block mb-1">Entradas</small>
+            <span class="fw-medium">{{ p.numero_entradas }}</span>
+          </div>
+          <div class="col-sm-6 col-lg-4">
+            <small class="text-muted d-block mb-1">Valor total</small>
+            <span class="fw-medium">{{ p.valor_total | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</span>
+          </div>
+          <div class="col-12">
+            <small class="text-muted d-block mb-1">Observaciones</small>
+            <p class="mb-0">{{ p.observaciones || '—' }}</p>
+          </div>
+          <div class="col-12">
+            <small class="text-muted d-block mb-1">Causa de cancelación</small>
+            <p class="mb-0">{{ p.causa_cancelacion || '—' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="card p-4">
+      <div class="ev-skeleton mb-3" style="width:35%;height:22px"></div>
+      <div class="ev-skeleton mb-2"></div>
+      <div class="ev-skeleton" style="width:60%"></div>
+    </div>
+  }
+</div>

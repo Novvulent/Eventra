@@ -1,0 +1,17 @@
+
+<div class="ev-page">
+  <app-page-header icon="bi-shield-lock" [section]="section" title="Registrar administrador"
+                   subtitle="Completa la información para registrar un nuevo administrador.">
+    <app-back />
+  </app-page-header>
+
+  <div class="card">
+    <div class="ev-card-header">
+      <h2 class="ev-card-title"><i class="bi bi-shield-lock"></i> Información del administrador</h2>
+    </div>
+    <div class="card-body p-4">
+      <app-form-administrador [saving]="saving()" submitLabel="Registrar administrador"
+                         (save)="createAdministrador($event)" (cancel)="goToList()" />
+    </div>
+  </div>
+</div>

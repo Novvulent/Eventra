@@ -1,0 +1,44 @@
+<!-- Barra superior (solo móvil) -->
+<header class="ev-topbar">
+  <button class="ev-menu-btn" type="button" (click)="open.set(true)" aria-label="Abrir menú">
+    <i class="bi bi-list"></i>
+  </button>
+  <a class="ev-brand" [routerLink]="home()">
+    <span class="ev-brand-mark"><i class="bi bi-ticket-perforated-fill"></i></span>
+    <span class="ev-brand-name">Eventra</span>
+  </a>
+</header>
+
+<div class="ev-backdrop" [class.open]="open()" (click)="open.set(false)"></div>
+
+<!-- Barra lateral -->
+<aside class="ev-sidebar" [class.open]="open()">
+  <a class="ev-brand" [routerLink]="home()">
+    <span class="ev-brand-mark"><i class="bi bi-ticket-perforated-fill"></i></span>
+    <span class="ev-brand-name">Eventra</span>
+  </a>
+
+  <nav class="ev-nav">
+    @for (section of sections(); track section.title) {
+      <div class="ev-nav-section">{{ section.title }}</div>
+      @for (item of section.items; track item.url) {
+        <a [routerLink]="item.url" routerLinkActive="active">
+          <i [class]="'bi ' + item.icon"></i><span>{{ item.title }}</span>
+        </a>
+      }
+    }
+  </nav>
+
+  @if (auth.usuario(); as u) {
+    <div class="ev-user">
+      <span class="ev-avatar">{{ initials(u.nombre_completo) }}</span>
+      <div class="min-w-0">
+        <div class="ev-user-name text-truncate">{{ u.nombre_completo }}</div>
+        <div class="ev-user-role">{{ u.rol }}</div>
+      </div>
+      <button class="ev-logout" type="button" (click)="auth.logout()" title="Cerrar sesión" aria-label="Cerrar sesión">
+        <i class="bi bi-box-arrow-right"></i>
+      </button>
+    </div>
+  }
+</aside>

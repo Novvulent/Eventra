@@ -1,0 +1,17 @@
+
+<div class="ev-page">
+  <app-page-header icon="bi-people" [section]="section" title="Registrar cliente"
+                   subtitle="Completa la información para registrar un nuevo cliente.">
+    <app-back />
+  </app-page-header>
+
+  <div class="card">
+    <div class="ev-card-header">
+      <h2 class="ev-card-title"><i class="bi bi-people"></i> Información del cliente</h2>
+    </div>
+    <div class="card-body p-4">
+      <app-form-cliente [saving]="saving()" submitLabel="Registrar cliente"
+                         (save)="createCliente($event)" (cancel)="goToList()" />
+    </div>
+  </div>
+</div>

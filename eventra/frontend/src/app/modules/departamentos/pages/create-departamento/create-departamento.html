@@ -1,0 +1,17 @@
+
+<div class="ev-page">
+  <app-page-header icon="bi-map" [section]="section" title="Registrar departamento"
+                   subtitle="Completa la información para registrar un nuevo departamento.">
+    <app-back />
+  </app-page-header>
+
+  <div class="card">
+    <div class="ev-card-header">
+      <h2 class="ev-card-title"><i class="bi bi-map"></i> Información del departamento</h2>
+    </div>
+    <div class="card-body p-4">
+      <app-form-departamento [saving]="saving()" submitLabel="Registrar departamento"
+                         (save)="createDepartamento($event)" (cancel)="goToList()" />
+    </div>
+  </div>
+</div>

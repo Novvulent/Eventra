@@ -1,0 +1,50 @@
+
+<div class="ev-page">
+  <app-page-header icon="bi-buildings" [section]="section" title="Detalle de la ciudad"
+                   subtitle="Información registrada en la base de datos.">
+    <app-back />
+    <app-button [config]="editButtonConfig" (onClick)="edit()" />
+  </app-page-header>
+
+  @if (ciudad(); as p) {
+    <div class="card mb-4">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3">
+          <span class="ev-kpi-icon tone-primary"><i class="bi bi-buildings"></i></span>
+          <div class="flex-grow-1 min-w-0">
+            <h4 class="fw-bold mb-1 text-truncate">{{ p.nombre }}</h4>
+            <span class="text-muted">Ciudad #{{ p.id_ciudad }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ev-card-header">
+        <h2 class="ev-card-title"><i class="bi bi-info-circle"></i> Información general</h2>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-4">
+          <div class="col-sm-6 col-lg-4">
+            <small class="text-muted d-block mb-1">Nombre</small>
+            <span class="fw-medium">{{ p.nombre }}</span>
+          </div>
+          <div class="col-sm-6 col-lg-4">
+            <small class="text-muted d-block mb-1">Departamento</small>
+            <span class="fw-medium">{{ p.departamento ?? '—' }}</span>
+          </div>
+          <div class="col-sm-6 col-lg-4">
+            <small class="text-muted d-block mb-1">País</small>
+            <span class="fw-medium">{{ p.pais ?? '—' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="card p-4">
+      <div class="ev-skeleton mb-3" style="width:35%;height:22px"></div>
+      <div class="ev-skeleton mb-2"></div>
+      <div class="ev-skeleton" style="width:60%"></div>
+    </div>
+  }
+</div>

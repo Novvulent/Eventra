@@ -1,0 +1,24 @@
+
+<div class="ev-page">
+  <app-page-header icon="bi-shield-lock" [section]="section" title="Administradores" [subtitle]="subtitle">
+    <app-button [config]="createButtonConfig" (onClick)="createAdministrador()" />
+  </app-page-header>
+
+  <div class="card">
+    <div class="ev-card-header">
+      <div class="ev-toolbar flex-grow-1">
+        <div class="ev-input-icon ev-search">
+          <i class="bi bi-search"></i>
+          <input class="form-control" type="search" placeholder="Buscar en administradores..." aria-label="Buscar"
+                 [value]="search()" (input)="search.set($any($event.target).value)">
+        </div>
+        <span class="ev-count ms-auto">
+          @if (search()) { {{ filtered().length }} de }{{ administradores().length }} registro{{ administradores().length === 1 ? '' : 's' }}
+        </span>
+      </div>
+    </div>
+
+    <app-table-administradores [administradores]="filtered()" [loading]="loading()" [search]="search()"
+                         (onClickActions)="tableEvents($event)" />
+  </div>
+</div>

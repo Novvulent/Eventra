@@ -1,0 +1,25 @@
+
+<div class="ev-page">
+  <app-page-header icon="bi-people" [section]="section" title="Editar cliente"
+                   [subtitle]="'Actualiza la información del cliente #' + id + '.'">
+    <app-back />
+  </app-page-header>
+
+  <div class="card">
+    <div class="ev-card-header">
+      <h2 class="ev-card-title"><i class="bi bi-pencil"></i> Información del cliente</h2>
+    </div>
+    <div class="card-body p-4">
+      @if (cliente(); as value) {
+        <app-form-cliente [value]="value" [saving]="saving()" submitLabel="Guardar cambios"
+                           (save)="updateCliente($event)" (cancel)="goToList()" />
+      } @else {
+        <div class="row g-3">
+          @for (i of [1, 2, 3, 4]; track i) {
+            <div class="col-md-6"><div class="ev-skeleton mb-2" style="width:40%"></div><div class="ev-skeleton" style="height:40px"></div></div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

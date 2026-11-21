@@ -4,7 +4,7 @@ Aplicación web para la gestión de eventos y reservas, desarrollada como Proyec
 
 - **Base de datos:** PostgreSQL
 - **Backend:** Node.js + Express (API REST). Módulos con `routes`, `controllers`, `services` y `models`.
-- **Frontend:** Angular (standalone) + Bootstrap, consumiendo la API REST.
+- **Frontend:** Angular (standalone) + Bootstrap + SweetAlert2, organizado por módulos (`components`, `interfaces`, `pages`, `services`) y consumiendo la API REST.
 
 ## Estructura
 
@@ -17,6 +17,43 @@ eventra/
 
 Módulos del backend: `localizacion` (países, departamentos, ciudades), `auth` (inicio de sesión y registro),
 `clientes` (personas, clientes, reservas), `agentes` (agentes, eventos) y `administradores` (administradores, reportes).
+
+### Estructura del frontend
+
+Cada entidad es un módulo en `frontend/src/app/modules/<entidad>/` con la misma organización:
+
+```
+modules/
+├── shared/                         Elementos reutilizables
+│   ├── components/                 button, back, navbar (barra lateral), page-header
+│   ├── interfaces/                 button, navbar, theme
+│   ├── services/                   alert.service (confirmaciones y notificaciones con SweetAlert2)
+│   └── utils/                      estado (insignias), form (conversión de formularios), http (errores)
+├── auth/                           guards/role.guard, interfaces/usuario, pages/login|register, services/auth.service
+├── reportes/                       interfaces/reportes, pages/dashboard, services/reportes.service
+├── paises/                         ← ejemplo de módulo CRUD
+│   ├── components/
+│   │   ├── table-paises/           tabla con acciones (detalle, editar, eliminar)
+│   │   └── form-pais/              formulario reactivo usado al crear y al actualizar
+│   ├── interfaces/                 pais.ts (modelo y request), table-paises.ts (eventos de la tabla)
+│   ├── pages/
+│   │   ├── list-paises/            consulta (GetAll) y eliminación (Delete)
+│   │   ├── create-pais/            registro (Create)
+│   │   ├── update-pais/            actualización (Update)
+│   │   └── detail-pais/            detalle (GetById)
+│   └── services/pais.service.ts    las 5 operaciones CRUD contra la API
+├── departamentos/  ciudades/  personas/  clientes/  agentes/  administradores/
+├── eventos/                        + pages/cartelera-eventos (perfil cliente)
+└── reservas/                       + pages/mis-reservas (cliente) y pages/gestion-reservas (agente)
+```
+
+Rutas por perfil (`app.routes.ts`):
+
+| Perfil | Rutas |
+|---|---|
+| Administrador | `/admin/dashboard` y `/admin/<entidad>/list`, `/create`, `/update/:id`, `/detail/:id` |
+| Agente | `/agente/eventos/list`, `/create`, `/detail/:id` y `/agente/reservas` |
+| Cliente | `/cliente/eventos` (cartelera) y `/cliente/reservas` |
 
 ## Requisitos
 

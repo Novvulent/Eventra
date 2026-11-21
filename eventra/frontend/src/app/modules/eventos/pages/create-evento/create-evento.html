@@ -1,0 +1,17 @@
+
+<div class="ev-page">
+  <app-page-header icon="bi-calendar-event" [section]="section" title="Registrar evento"
+                   subtitle="Completa la información para registrar un nuevo evento.">
+    <app-back />
+  </app-page-header>
+
+  <div class="card">
+    <div class="ev-card-header">
+      <h2 class="ev-card-title"><i class="bi bi-calendar-event"></i> Información del evento</h2>
+    </div>
+    <div class="card-body p-4">
+      <app-form-evento [saving]="saving()" submitLabel="Registrar evento" [showAgente]="!esAgente"
+                         (save)="createEvento($event)" (cancel)="goToList()" />
+    </div>
+  </div>
+</div>

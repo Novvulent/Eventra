@@ -1,0 +1,14 @@
+<button type="button" class="btn" [disabled]="disabled"
+        [ngClass]="[
+          (config.outline ? 'btn-outline-' : 'btn-') + config.type,
+          config.size ? 'btn-' + config.size : ''
+        ]"
+        [attr.title]="config.tooltip || null" [attr.aria-label]="config.tooltip || config.title || null"
+        (click)="click()">
+  @if (config.icon) {
+    <i class="bi" [ngClass]="'bi-' + config.icon"></i>
+  }
+  @if (config.title) {
+    <span>{{ config.title }}</span>
+  }
+</button>

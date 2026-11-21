@@ -1,0 +1,31 @@
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="row g-3">
+  <div class="col-md-6">
+    <label class="form-label" for="nombre">Nombre <span class="text-danger">*</span></label>
+    <input id="nombre" type="text" class="form-control" formControlName="nombre" placeholder="Valle del Cauca">
+    @if (invalid('nombre')) { <small class="text-danger">Este campo es obligatorio.</small> }
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="id_pais">País <span class="text-danger">*</span></label>
+    <select id="id_pais" class="form-select" formControlName="id_pais">
+      <option [ngValue]="null">Seleccione...</option>
+      @for (o of paises; track o.id_pais) {
+        <option [ngValue]="o.id_pais">{{ o.nombre }}</option>
+      }
+    </select>
+    @if (invalid('id_pais')) { <small class="text-danger">Este campo es obligatorio.</small> }
+  </div>
+  </div>
+
+  <hr class="my-4">
+
+  <!-- Acciones -->
+  <div class="d-flex justify-content-end gap-2">
+    <button type="button" class="btn btn-light" (click)="cancel.emit()">Cancelar</button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving">
+      @if (saving) { <span class="spinner-border spinner-border-sm"></span> } @else { <i class="bi bi-check-lg"></i> }
+      {{ submitLabel }}
+    </button>
+  </div>
+</form>

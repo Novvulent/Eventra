@@ -1,0 +1,74 @@
+
+<div class="table-responsive">
+  <table class="table ev-table ev-compact table-hover">
+    <thead>
+      <tr>
+          <th>ID</th>
+          <th>Identificación</th>
+          <th>Nombre</th>
+          <th>Correo</th>
+          <th>Ciudad</th>
+          <th>Teléfonos</th>
+          <th>Salario</th>
+          <th>Horario</th>
+          <th class="text-end ev-sticky-end">Opciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      @if (loading) {
+        @for (i of [1, 2, 3, 4]; track i) {
+          <tr>
+              <td><div class="ev-skeleton"></div></td>
+              <td><div class="ev-skeleton"></div></td>
+              <td><div class="ev-skeleton"></div></td>
+              <td><div class="ev-skeleton"></div></td>
+              <td><div class="ev-skeleton"></div></td>
+              <td><div class="ev-skeleton"></div></td>
+              <td><div class="ev-skeleton"></div></td>
+              <td><div class="ev-skeleton"></div></td>
+              <td class="ev-sticky-end"><div class="ev-skeleton"></div></td>
+          </tr>
+        }
+      } @else {
+        @for (item of administradores; track item.id_persona) {
+          <tr>
+            <td><span class="ev-id">#{{ item.id_persona }}</span></td>
+            <td><span [attr.title]="item.identificacion">{{ item.identificacion }}</span></td>
+            <td><div class="d-flex align-items-center gap-2"><span class="ev-avatar sm soft">{{ initials(item.nombre_completo) }}</span><span class="fw-semibold">{{ item.nombre_completo }}</span></div></td>
+            <td><span [attr.title]="item.correo">{{ item.correo }}</span></td>
+            <td><span [attr.title]="item.ciudad">{{ item.ciudad ?? '—' }}</span></td>
+            <td><span class="text-muted">{{ (item.telefonos || []).join(', ') || '—' }}</span></td>
+            <td><span class="ev-num fw-semibold">{{ item.salario | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</span></td>
+            <td><span [attr.title]="item.horario">{{ item.horario }}</span></td>
+            <!-- Opciones -->
+            <td class="ev-sticky-end">
+              <div class="d-flex justify-content-end gap-1">
+                <app-button [config]="configDetailButton" (onClick)="click(item.id_persona, 'detail')" />
+                @if (canEdit) {
+                  <app-button [config]="configEditButton" (onClick)="click(item.id_persona, 'edit')" />
+                }
+                @if (canDelete) {
+                  <app-button [config]="configDeleteButton" (onClick)="click(item.id_persona, 'delete')" />
+                }
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td [attr.colspan]="9">
+              <div class="ev-empty">
+                @if (search) {
+                  <i class="bi bi-search"></i>
+                  <strong>Sin resultados</strong>No hay coincidencias para “{{ search }}”.
+                } @else {
+                  <i class="bi bi-shield-lock"></i>
+                  <strong>No hay administradores registrados</strong>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>

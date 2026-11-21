@@ -1,0 +1,11 @@
+<div class="ev-shell" [class.has-sidebar]="!!auth.usuario()">
+  <!-- Navbar (solo con sesión iniciada) -->
+  @if (auth.usuario()) {
+    <app-navbar />
+  }
+
+  <!-- Main Content -->
+  <main class="ev-content">
+    <router-outlet />
+  </main>
+</div>

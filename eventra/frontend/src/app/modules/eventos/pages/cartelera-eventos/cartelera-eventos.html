@@ -1,0 +1,140 @@
+<div class="ev-page">
+  <header class="ev-page-header">
+    <div>
+      <div class="ev-eyebrow"><i class="bi bi-stars"></i> Cartelera</div>
+      <h1 class="ev-page-title">Eventos disponibles</h1>
+      <p class="ev-page-sub">Elige una función y reserva tus entradas en segundos.</p>
+    </div>
+    <div class="ev-input-icon ev-search">
+      <i class="bi bi-search"></i>
+      <input class="form-control" type="search" placeholder="Buscar evento, teatro o ciudad..."
+             [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" aria-label="Buscar eventos">
+    </div>
+  </header>
+
+  @if (mensaje()) {
+    <div class="ev-alert success">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>{{ mensaje() }} <a class="fw-semibold" routerLink="/cliente/reservas">Ver mis reservas <i class="bi bi-arrow-right"></i></a></span>
+      <button class="ev-alert-close" (click)="mensaje.set('')" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+    </div>
+  }
+  @if (error() && !seleccionado()) {
+    <div class="ev-alert danger"><i class="bi bi-exclamation-octagon-fill"></i><span>{{ error() }}</span></div>
+  }
+
+  @if (lista().length) {
+    <div class="ev-chips mb-4">
+      @for (e of estados(); track e.nombre) {
+        <button class="ev-chip" [class.active]="filtro() === e.nombre" (click)="filtro.set(e.nombre)">
+          {{ e.nombre }}<span class="n">{{ e.total }}</span>
+        </button>
+      }
+    </div>
+  }
+
+  <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+    @if (cargando()) {
+      @for (i of [1, 2, 3]; track i) {
+        <div class="col">
+          <div class="ev-event">
+            <div class="ev-event-poster ev-skeleton" style="border-radius:0;height:150px"></div>
+            <div class="ev-event-body">
+              <div class="ev-skeleton mb-3" style="width:70%;height:20px"></div>
+              <div class="ev-skeleton mb-2"></div><div class="ev-skeleton" style="width:60%"></div>
+            </div>
+          </div>
+        </div>
+      }
+    }
+    @for (e of visibles(); track e.codigo_evento) {
+      <div class="col">
+        <article class="ev-event">
+          <div class="ev-event-poster" [style.background]="poster(e.nombre)">
+            <div class="ev-date">
+              <div class="d">{{ e.fecha_inicio | date: 'd' }}</div>
+              <div class="m">{{ e.fecha_inicio | date: 'MMM' }}</div>
+            </div>
+            <span [class]="badge(e.estado)">{{ e.estado }}</span>
+            <i class="bi bi-ticket-perforated"></i>
+          </div>
+          <div class="ev-event-body">
+            <h3 class="ev-event-title">{{ e.nombre }}</h3>
+            <p class="ev-event-desc">{{ e.descripcion || 'Sin descripción.' }}</p>
+            <ul class="ev-meta">
+              <li><i class="bi bi-geo-alt"></i> {{ e.teatro }} · {{ e.ciudad }}</li>
+              <li><i class="bi bi-clock"></i> {{ e.fecha_inicio | date: 'EEE d MMM, h:mm a' }} – {{ e.fecha_fin | date: 'h:mm a' }}</li>
+              <li><i class="bi bi-people"></i> Capacidad: {{ e.capacidad }} personas</li>
+            </ul>
+          </div>
+          <div class="ev-event-foot">
+            <div class="ev-price">
+              <small>Desde</small>
+              <strong>{{ e.precio_base | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong>
+            </div>
+            <button class="btn btn-primary" (click)="reservar(e)"><i class="bi bi-ticket-perforated"></i> Reservar</button>
+          </div>
+        </article>
+      </div>
+    }
+  </div>
+
+  @if (!cargando() && !visibles().length) {
+    <div class="card"><div class="ev-empty">
+      <i class="bi bi-calendar-x"></i>
+      <strong>No encontramos eventos</strong>
+      {{ busqueda() || filtro() !== 'Todos' ? 'Prueba con otra búsqueda o filtro.' : 'Vuelve pronto: la cartelera se actualiza constantemente.' }}
+    </div></div>
+  }
+</div>
+
+<!-- Reserva -->
+@if (seleccionado(); as e) {
+  <div class="ev-modal-backdrop" (click)="seleccionado.set(null)">
+    <form class="ev-modal" style="max-width:500px" (ngSubmit)="confirmar()" #f="ngForm" (click)="$event.stopPropagation()">
+      <div class="d-flex align-items-start gap-3 mb-3">
+        <div class="ev-date border">
+          <div class="d">{{ e.fecha_inicio | date: 'd' }}</div>
+          <div class="m">{{ e.fecha_inicio | date: 'MMM' }}</div>
+        </div>
+        <div class="flex-grow-1 min-w-0">
+          <div class="ev-eyebrow mb-1">Reservar entradas</div>
+          <h5 class="mb-1">{{ e.nombre }}</h5>
+          <small class="text-muted"><i class="bi bi-geo-alt"></i> {{ e.teatro }} · {{ e.fecha_inicio | date: 'h:mm a' }}</small>
+        </div>
+        <button type="button" class="btn-icon" (click)="seleccionado.set(null)" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      @if (error()) {
+        <div class="ev-alert danger"><i class="bi bi-exclamation-octagon-fill"></i><span>{{ error() }}</span></div>
+      }
+
+      <div class="mb-3">
+        <label class="form-label" for="entradas">Número de entradas</label>
+        <div class="d-flex align-items-center gap-3">
+          <div class="ev-stepper">
+            <button type="button" (click)="entradas = entradas - 1" [disabled]="entradas <= 1" aria-label="Menos"><i class="bi bi-dash"></i></button>
+            <input id="entradas" name="entradas" type="number" min="1" [(ngModel)]="entradas" required>
+            <button type="button" (click)="entradas = entradas + 1" aria-label="Más"><i class="bi bi-plus"></i></button>
+          </div>
+          <small class="text-muted">{{ e.precio_base | currency: 'COP' : 'symbol-narrow' : '1.0-0' }} c/u</small>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label" for="obs">Observaciones <span class="text-muted fw-normal">(opcional)</span></label>
+        <input class="form-control" id="obs" name="obs" placeholder="Ej.: asientos juntos" [(ngModel)]="observaciones">
+      </div>
+
+      <div class="ev-total mb-3">
+        <div><small>Valor total</small><div class="small">{{ entradas }} entrada{{ entradas === 1 ? '' : 's' }}</div></div>
+        <strong>{{ total() | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-light flex-fill" type="button" (click)="seleccionado.set(null)">Cancelar</button>
+        <button class="btn btn-primary flex-fill" type="submit" [disabled]="f.invalid || entradas < 1">
+          <i class="bi bi-check2-circle"></i> Confirmar reserva
+        </button>
+      </div>
+    </form>
+  </div>
+}

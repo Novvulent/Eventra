@@ -1,0 +1,14 @@
+<header class="ev-page-header">
+  <div>
+    @if (section) {
+      <div class="ev-eyebrow"><i [class]="'bi ' + icon"></i> {{ section }}</div>
+    }
+    <h1 class="ev-page-title">{{ title }}</h1>
+    @if (subtitle) {
+      <p class="ev-page-sub">{{ subtitle }}</p>
+    }
+  </div>
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <ng-content />
+  </div>
+</header>

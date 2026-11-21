@@ -1,0 +1,24 @@
+
+<div class="ev-page">
+  <app-page-header icon="bi-person-vcard" [section]="section" title="Personas" [subtitle]="subtitle">
+    <app-button [config]="createButtonConfig" (onClick)="createPersona()" />
+  </app-page-header>
+
+  <div class="card">
+    <div class="ev-card-header">
+      <div class="ev-toolbar flex-grow-1">
+        <div class="ev-input-icon ev-search">
+          <i class="bi bi-search"></i>
+          <input class="form-control" type="search" placeholder="Buscar en personas..." aria-label="Buscar"
+                 [value]="search()" (input)="search.set($any($event.target).value)">
+        </div>
+        <span class="ev-count ms-auto">
+          @if (search()) { {{ filtered().length }} de }{{ personas().length }} registro{{ personas().length === 1 ? '' : 's' }}
+        </span>
+      </div>
+    </div>
+
+    <app-table-personas [personas]="filtered()" [loading]="loading()" [search]="search()"
+                         (onClickActions)="tableEvents($event)" />
+  </div>
+</div>

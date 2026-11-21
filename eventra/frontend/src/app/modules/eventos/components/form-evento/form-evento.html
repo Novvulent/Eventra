@@ -1,0 +1,90 @@
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="row g-3">
+  <div class="col-md-6">
+    <label class="form-label" for="nombre">Nombre <span class="text-danger">*</span></label>
+    <input id="nombre" type="text" class="form-control" formControlName="nombre" placeholder="Concierto Sinfónico">
+    @if (invalid('nombre')) { <small class="text-danger">Este campo es obligatorio.</small> }
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="teatro">Teatro <span class="text-danger">*</span></label>
+    <input id="teatro" type="text" class="form-control" formControlName="teatro" placeholder="Teatro Municipal">
+    @if (invalid('teatro')) { <small class="text-danger">Este campo es obligatorio.</small> }
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="id_ciudad">Ciudad <span class="text-danger">*</span></label>
+    <select id="id_ciudad" class="form-select" formControlName="id_ciudad">
+      <option [ngValue]="null">Seleccione...</option>
+      @for (o of ciudades; track o.id_ciudad) {
+        <option [ngValue]="o.id_ciudad">{{ o.nombre }}</option>
+      }
+    </select>
+    @if (invalid('id_ciudad')) { <small class="text-danger">Este campo es obligatorio.</small> }
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="fecha_inicio">Fecha y hora de inicio <span class="text-danger">*</span></label>
+    <input id="fecha_inicio" type="datetime-local" class="form-control" formControlName="fecha_inicio">
+    @if (invalid('fecha_inicio')) { <small class="text-danger">Este campo es obligatorio.</small> }
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="fecha_fin">Fecha y hora de fin <span class="text-danger">*</span></label>
+    <input id="fecha_fin" type="datetime-local" class="form-control" formControlName="fecha_fin">
+    @if (invalid('fecha_fin')) { <small class="text-danger">Este campo es obligatorio.</small> }
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="capacidad">Capacidad <span class="text-danger">*</span></label>
+    <input id="capacidad" type="number" step="any" class="form-control" formControlName="capacidad">
+    @if (invalid('capacidad')) { <small class="text-danger">Este campo es obligatorio.</small> }
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="precio_base">Precio base <span class="text-danger">*</span></label>
+    <input id="precio_base" type="number" step="any" class="form-control" formControlName="precio_base">
+    @if (invalid('precio_base')) { <small class="text-danger">Este campo es obligatorio.</small> }
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="estado">Estado <span class="text-danger">*</span></label>
+    <select id="estado" class="form-select" formControlName="estado">
+      <option [ngValue]="null">Seleccione...</option>
+      @for (o of opcionesEstado; track o) {
+        <option [ngValue]="o">{{ o }}</option>
+      }
+    </select>
+    @if (invalid('estado')) { <small class="text-danger">Este campo es obligatorio.</small> }
+  </div>
+  @if (showAgente) {
+  <div class="col-md-6">
+    <label class="form-label" for="id_agente">Agente <span class="text-danger">*</span></label>
+    <select id="id_agente" class="form-select" formControlName="id_agente">
+      <option [ngValue]="null">Seleccione...</option>
+      @for (o of agentes; track o.id_persona) {
+        <option [ngValue]="o.id_persona">{{ o.nombre_completo }}</option>
+      }
+    </select>
+    @if (invalid('id_agente')) { <small class="text-danger">Este campo es obligatorio.</small> }
+  </div>
+  }
+  <div class="col-12">
+    <label class="form-label" for="descripcion">Descripción</label>
+    <textarea id="descripcion" class="form-control" rows="3" formControlName="descripcion"></textarea>
+  </div>
+  <div class="col-12">
+    <label class="form-label" for="observaciones">Observaciones</label>
+    <textarea id="observaciones" class="form-control" rows="3" formControlName="observaciones"></textarea>
+  </div>
+  <div class="col-12">
+    <label class="form-label" for="causa_cancelacion">Causa de cancelación</label>
+    <textarea id="causa_cancelacion" class="form-control" rows="3" formControlName="causa_cancelacion"></textarea>
+  </div>
+  </div>
+
+  <hr class="my-4">
+
+  <!-- Acciones -->
+  <div class="d-flex justify-content-end gap-2">
+    <button type="button" class="btn btn-light" (click)="cancel.emit()">Cancelar</button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving">
+      @if (saving) { <span class="spinner-border spinner-border-sm"></span> } @else { <i class="bi bi-check-lg"></i> }
+      {{ submitLabel }}
+    </button>
+  </div>
+</form>

@@ -1,0 +1,17 @@
+
+<div class="ev-page">
+  <app-page-header icon="bi-buildings" [section]="section" title="Registrar ciudad"
+                   subtitle="Completa la información para registrar una nueva ciudad.">
+    <app-back />
+  </app-page-header>
+
+  <div class="card">
+    <div class="ev-card-header">
+      <h2 class="ev-card-title"><i class="bi bi-buildings"></i> Información de la ciudad</h2>
+    </div>
+    <div class="card-body p-4">
+      <app-form-ciudad [saving]="saving()" submitLabel="Registrar ciudad"
+                         (save)="createCiudad($event)" (cancel)="goToList()" />
+    </div>
+  </div>
+</div>
